@@ -8,7 +8,6 @@ import os.path as op
 import mne
 import numpy as np
 import matplotlib.pylab as plt
-from zapline_iterator.zapline_iter import zapline_until_gone
 
 try:
     index = int(sys.argv[1])
