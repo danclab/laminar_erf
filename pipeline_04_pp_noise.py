@@ -43,7 +43,7 @@ files.make_folder(sub_path)
 sessions = files.get_folders(subject,'ses','')[2]
 sessions.sort()
 
-for session in sessions[2:4]:
+for session in sessions:
     session_id = session.split("/")[-1]
 
     meg_path = op.join(session, "meg")
