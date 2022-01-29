@@ -1,0 +1,5 @@
+{
+    "dataset_path": "/media/bonaiuto/TOSHIBA EXT/cued_action_meg/",
+    "downsample_dataset": 600,
+    "hi_pass_filter": 120
+}
