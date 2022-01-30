@@ -93,17 +93,17 @@ for session in sessions:
             win_sz=20,
             spot_sz=5.5,
             show=True,
-            prefix="{}/{}-{}-{}-50_iter".format(qc_folder, subject_id, session_id, numero)
+            prefix="{}/{}-{}-{}-50_1_iter".format(qc_folder, subject_id, session_id, numero)
         )
 
         zapped, iterations = dss_line_iter(
             zapped,
-            60.0,
+            50.0,
             info['sfreq'],
             win_sz=20,
             spot_sz=5.5,
             show=True,
-            prefix="{}/{}-{}-{}-60_iter".format(qc_folder, subject_id, session_id, numero)
+            prefix="{}/{}-{}-{}-50_2_iter".format(qc_folder, subject_id, session_id, numero)
         )
 
         raw = mne.io.RawArray(
