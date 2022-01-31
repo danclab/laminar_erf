@@ -10,7 +10,23 @@ from pyedfread import edf
 from extra.tools import update_key_value, dump_the_dict, resamp_interp
 from ecgdetectors import Detectors
 from scipy.stats import pearsonr
+import matplotlib.pyplot as plt
 import gc
+
+# Time lagged cross correlation
+def crosscorr(datax, datay, lag=0):
+    """ Lag-N cross correlation.
+    Shifted data filled with NaNs
+
+    Parameters
+    ----------
+    lag : int, default 0
+    datax, datay : pandas.Series objects of equal length
+    Returns
+    ----------
+    crosscorr : float
+    """
+    return datax.corr(datay.shift(lag))
 
 # parsing command line arguments
 try:
@@ -137,12 +153,25 @@ for session in sessions:
         # signal has to be found manually, indicated as 666 in the first item
         # of the list.
         r_hr = [ds.hamilton_detector(ica_data[i]) for i in range(ica_data.shape[0])]
-        r_hr = [np.var(np.diff(i)) for i in r_hr]
-        ecg_out[ica_key] = r_hr
-        r_hr = np.array(r_hr)
+        r_hr_var = [np.var(np.diff(i)) for i in r_hr]
+        ecg_out[ica_key] = r_hr_var
+        r_hr_var = np.array(r_hr_var)
 
-        if (np.percentile(r_hr, 1) - np.min(r_hr)) > 500:
-            hr = list(np.where(r_hr < np.percentile(r_hr, 1))[0])
+        if (np.percentile(r_hr_var, 1) - np.min(r_hr_var)) > 500:
+            hr = list(np.where(r_hr_var < np.percentile(r_hr_var, 1))[0])
+
+            for h in hr:
+                fig=plt.figure()
+                fig.suptitle("{}-{}-{}".format(subject_id, session_id, numero))
+                plt.plot(ica_data[h])
+                plt.plot(r_hr[h], ica_data[h][r_hr[h]], 'ro')
+                plt.title("Detected R peaks")
+                plt.savefig(
+                    op.join(qc_folder, "{}-{}-{}-hr_comp_{}.png".format(subject_id, session_id, numero, h)),
+                    dpi=150,
+                    bbox_inches="tight"
+                )
+                plt.close("all")
         else:
             hr = [666]
 
@@ -176,7 +205,7 @@ for session in sessions:
         # gx, gy is a gaze screen position, EyeLink recorded blinks as position way
         # outside of the screen, thus safe threshold to detect blinks.
         # dependent on the screen resolution.
-        blink_ix = np.where(gy > 1500)[0]
+        blink_ix = np.where(gy > 600)[0]
 
         clean_gx = np.copy(gx)
         clean_gy = np.copy(gy)
@@ -188,23 +217,55 @@ for session in sessions:
         clean_gx[blink_ix] = gx_iqr_med
         clean_gy[blink_ix] = gy_iqr_med
 
-        clean_gx = pd.Series(clean_gx).interpolate().to_numpy()
-        clean_gy = pd.Series(clean_gy).interpolate().to_numpy()
+        clean_gx = pd.Series(clean_gx).interpolate()
+        clean_gy = pd.Series(clean_gy).interpolate()
+        gx = pd.Series(gx)
+        gy = pd.Series(gy)
 
         # x, y, clean_x, clean_y
         # ICA comp N x 4x(r, p)
         ica_eog = []
         comp = []
         for i in range(ica_data.shape[0]):
-            out = [pearsonr(j, ica_data[i]) for j in [gx, gy, clean_gx, clean_gy]]
+            out=[]
+            for j in [gx, gy, clean_gx, clean_gy]:
+                lags = np.arange(-(20000), (20000), 10)  # contrained
+                rs = np.nan_to_num([crosscorr(pd.Series(ica_data[i]), j, lag) for lag in lags])
+                #out.append(pearsonr(j, ica_data[i]))
+                out.append(np.max(rs))
             comp.append(out)
             results = np.array(out)
-            if np.average(np.abs(results[:, 0]) > 0.15) >= 0.25:
+            if np.mean(np.abs(results) > 0.15) >= 0.25:
                 ica_eog.append(i)
+
+                fig = plt.figure()
+                fig.suptitle("{}-{}-{}".format(subject_id, session_id, numero))
+                fig.add_subplot(2,2,1)
+                plt.plot(gx,ica_data[i],'.')
+                plt.xlabel('gx')
+                plt.ylabel('comp {}'.format(i))
+                fig.add_subplot(2, 2, 2)
+                plt.plot(gy,ica_data[i],'.')
+                plt.xlabel('gy')
+                plt.ylabel('comp {}'.format(i))
+                fig.add_subplot(2,2,3)
+                plt.plot(clean_gx,ica_data[i],'.')
+                plt.xlabel('clean_gx')
+                plt.ylabel('comp {}'.format(i))
+                fig.add_subplot(2,2,4)
+                plt.plot(clean_gy,ica_data[i],'.')
+                plt.xlabel('clean_gy')
+                plt.ylabel('comp {}'.format(i))
+                plt.savefig(
+                    op.join(qc_folder, "{}-{}-{}-eog_comp_{}.png".format(subject_id, session_id, numero, i)),
+                    dpi=150,
+                    bbox_inches="tight"
+                )
+                plt.close("all")
         eog_out[ica_key] = comp
 
         # all the numbers have to be integers
-        ica_eog = hr + ica_eog
+        ica_eog.extend(hr)
         ica_eog = [int(i) for i in ica_eog]
 
         # update of the key values
