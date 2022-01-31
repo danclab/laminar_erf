@@ -163,12 +163,12 @@ for session in sessions:
             if i=='motor':
                 beh = pd.read_csv(epoch_behav_path)
                 l_idx=np.where(beh.response==1)[0]
-                r_idx = np.where(beh.response == 1)[0]
+                r_idx = np.where(beh.response == 2)[0]
 
                 epoch=read_epochs(epoch_path, verbose=False)
                 epoch.load_data()
-                left_epoch = epoch.drop(r_idx)
-                l_beh = beh.drop(axis=0, index=r_idx)
+                left_epoch = epoch.drop(np.where(beh.response!=1)[0])
+                l_beh = beh.drop(axis=0, index=np.where(beh.response!=1)[0])
                 left_epoch_path = op.join(
                     sess_path,
                     "{}-{}-{}-{}_left-epo.fif".format(subject_id, session_id, numero, i)
@@ -187,8 +187,8 @@ for session in sessions:
 
                 epoch = read_epochs(epoch_path, verbose=False)
                 epoch.load_data()
-                right_epochs = epoch.drop(l_idx)
-                r_beh = beh.drop(axis=0, index=l_idx)
+                right_epochs = epoch.drop(np.where(beh.response!=2)[0])
+                r_beh = beh.drop(axis=0, index=np.where(beh.response!=2)[0])
                 right_epoch_path = op.join(
                     sess_path,
                     "{}-{}-{}-{}_right-epo.fif".format(subject_id, session_id, numero, i)
