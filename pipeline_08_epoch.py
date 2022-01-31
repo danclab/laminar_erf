@@ -2,7 +2,11 @@ import sys
 import json
 import mne
 import os.path as op
+import shutil
+import pandas as pd
 import numpy as np
+from mne import read_epochs
+
 from utilities import files
 
 # parsing command line arguments
@@ -82,9 +86,14 @@ for session in sessions:
         )
         numero = str(raw_path.split("-")[-2]).zfill(3)
 
+        behav_path = op.join(
+            sess_path, "{}-{}-{}-beh.csv".format(subject_id, session_id, numero)
+        )
+
         print("INPUT RAW FILE:", raw_path)
         print("INPUT EVENT FILE:", eve_path)
         print("INPUT ICA FILE:", ica_path)
+        print("INPUT BEHAV FILE:", behav_path)
 
         ica_exc = ica_files[ica_key]
 
@@ -129,25 +138,6 @@ for session in sessions:
                 verbose=True,
                 detrend=1
             )
-            # # plotting the psd of the epochs
-            # picks = [i for i in raw.ch_names if "O" in i] + [i for i in raw.ch_names if "T" in i]
-
-            # fig = epoch.plot_psd(
-            #     show=False,
-            #     average=False,
-            #     picks=picks
-            # )
-            # fig.suptitle("{} {}".format(i, numero))
-            # f_p = op.join(
-            #     qc_folder, "{}-{}-epochs-{}.png".format(subject_id, numero, i)
-            # )
-            # print(f_p)
-            # plt.savefig(
-            #     f_p,
-            #     dpi=150,
-            #     bbox_inches="tight"
-            # )
-            # plt.close("all")
 
             epoch_path = op.join(
                 sess_path,
@@ -159,8 +149,58 @@ for session in sessions:
                 fmt="double",
                 overwrite=True,
                 verbose=False,
-
             )
+
+            epoch_behav_path = op.join(
+                sess_path,
+                "{}-{}-{}-{}-beh.csv".format(subject_id, session_id, numero, i)
+            )
+            shutil.copy(behav_path, epoch_behav_path)
+
             print("SAVED:", epoch_path)
+            print("SAVED:", epoch_behav_path)
 
+            if i=='motor':
+                beh = pd.read_csv(epoch_behav_path)
+                l_idx=np.where(beh.response==1)[0]
+                r_idx = np.where(beh.response == 1)[0]
 
+                epoch=read_epochs(epoch_path, verbose=False)
+                epoch.load_data()
+                left_epoch = epoch.drop(r_idx)
+                l_beh = beh.drop(axis=0, index=r_idx)
+                left_epoch_path = op.join(
+                    sess_path,
+                    "{}-{}-{}-{}_left-epo.fif".format(subject_id, session_id, numero, i)
+                )
+                left_epoch.save(
+                    left_epoch_path,
+                    overwrite=True
+                )
+                left_epoch_behav_path = op.join(
+                    sess_path,
+                    "{}-{}-{}-{}_left-beh.csv".format(subject_id, session_id, numero, i)
+                )
+                l_beh.to_csv(left_epoch_behav_path)
+                print("SAVED:", left_epoch_path)
+                print("SAVED:", left_epoch_behav_path)
+
+                epoch = read_epochs(epoch_path, verbose=False)
+                epoch.load_data()
+                right_epochs = epoch.drop(l_idx)
+                r_beh = beh.drop(axis=0, index=l_idx)
+                right_epoch_path = op.join(
+                    sess_path,
+                    "{}-{}-{}-{}_right-epo.fif".format(subject_id, session_id, numero, i)
+                )
+                right_epochs.save(
+                    right_epoch_path,
+                    overwrite=True
+                )
+                right_epoch_behav_path = op.join(
+                    sess_path,
+                    "{}-{}-{}-{}_right-beh.csv".format(subject_id, session_id, numero, i)
+                )
+                r_beh.to_csv(right_epoch_behav_path)
+                print("SAVED:", right_epoch_path)
+                print("SAVED:", right_epoch_behav_path)

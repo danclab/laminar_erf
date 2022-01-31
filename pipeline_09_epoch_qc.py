@@ -77,14 +77,19 @@ for session in sessions:
     for epo in epo_paths:
         numero = epo.split(sep)[-1].split("-")[4]
         epochs = read_epochs(epo, verbose=False)
-        #epochs = epochs.decimate(3)
-        print("INPUT FILE:", epo)
-        beh_path = [i for i in beh_paths if numero+'-beh' in i][0]
-        eve_path = [i for i in eve_paths if numero+'-eve' in i][0]
-        beh = pd.read_csv(beh_path)
+        epo_type = epo.split(sep)[-1].split("-")[5]
 
+        beh_path = [i for i in beh_paths if numero + '-' + epo_type + '-beh' in i][0]
+        eve_path = [i for i in eve_paths if numero + '-eve' in i][0]
+        print("INPUT FILE:", epo)
+        print("INPUT EVENT FILE:", eve_path)
+        print("INPUT BEHAV FILE:", beh_path)
+
+        # Drop no responses
+        beh = pd.read_csv(beh_path)
         rej_idx=np.where(beh.response==0)[0]
         epochs=epochs.drop(rej_idx)
+
         ch_thr = compute_thresholds(
             epochs,
             random_state=42,
@@ -104,7 +109,6 @@ for session in sessions:
             res = [np.where(ch_tr[i][0] > thr)[0].shape[0] for i in range(len(epochs))]
             res = np.array(res)
             results[ix, :] = res
-        epo_type = epo.split(sep)[-1].split("-")[5]
         name = "{}-{}-{}-{}".format(subject_id, session_id, numero, epo_type)
         npy_path = op.join(qc_folder, name + ".npy")
         np.save(npy_path, results)

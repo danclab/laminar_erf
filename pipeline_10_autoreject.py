@@ -70,7 +70,9 @@ for session in sessions[0:1]:
     for epo in epo_paths:
         # for epo in [epo_paths[0]]:
         numero = epo.split(sep)[-1].split("-")[4]
-        beh_path = [i for i in beh_paths if numero+'-beh' in i][0]
+        epo_type = epo.split(sep)[-1].split("-")[5]
+
+        beh_path = [i for i in beh_paths if numero + '-' + epo_type + '-beh' in i][0]
         eve_path = [i for i in eve_paths if numero+'-eve' in i][0]
 
         print("BEH:", beh_path.split(sep)[-1])
@@ -80,58 +82,67 @@ for session in sessions[0:1]:
         epochs = read_epochs(epo, verbose=False)
         print("AMOUNT OF EPOCHS:", len(epochs))
         beh = pd.read_csv(beh_path)
-        beh_ixs = np.where(beh.response!=0)[0]
-        print("AMOUNT OF BEH TRIALS AFTER REMOVAL:", len(beh_ixs))
 
         epochs_2_drop = np.where(beh.response==0)[0]
 
         epochs.load_data()
         epochs = epochs.drop(epochs_2_drop, reason="bad behaviour")
+        beh = beh.drop(axis=0, index=epochs_2_drop)
+
         epochs.save(
             op.join(sess_path, "clean-" + epo.split(sep)[-1]),
             overwrite=True
         )
+        behav_path = op.join(
+            sess_path,
+            "clean-{}-{}-{}-{}-beh.csv".format(subject_id, session_id, numero, epo_type)
+        )
+        beh.to_csv(behav_path)
+
         print("AMOUNT OF EPOCHS AFTER MATCHING WITH BEH:", len(epochs))
-        print("DOES IT MATCH?", len(beh_ixs) == len(epochs))
-        print("\n")
 
-        if len(beh_ixs) == len(epochs):
-            epo_type = epo.split(sep)[-1].split("-")[5]
-            name = "{}-{}-{}-{}".format(subject_id, session_id, numero, epo_type)
+        name = "{}-{}-{}-{}".format(subject_id, session_id, numero, epo_type)
 
-            fig = epochs.average().plot(spatial_colors=True, show=False)
-            plt.savefig(op.join(qc_folder, "{}-pre-autorej_erf.png".format(name)))
-            plt.close("all")
+        fig = epochs.average().plot(spatial_colors=True, show=False)
+        plt.savefig(op.join(qc_folder, "{}-pre-autorej_erf.png".format(name)))
+        plt.close("all")
 
-            ar = AutoReject(
-                consensus=np.linspace(0, 1.0, 27),
-                n_interpolate=np.array([1, 4, 32]),
-                thresh_method="bayesian_optimization",
-                cv=10,
-                n_jobs=-1,
-                random_state=42,
-                verbose="progressbar"
-            )
-            ar.fit(epochs)
+        ar = AutoReject(
+            consensus=np.linspace(0, 1.0, 27),
+            n_interpolate=np.array([1, 4, 32]),
+            thresh_method="bayesian_optimization",
+            cv=10,
+            n_jobs=-1,
+            random_state=42,
+            verbose="progressbar"
+        )
+        ar.fit(epochs)
 
-            ar_fname = op.join(
-                qc_folder,
-                "{}-autoreject.h5".format(name)
-            )
-            ar.save(ar_fname, overwrite=True)
-            epochs_ar, rej_log = ar.transform(epochs, return_log=True)
+        ar_fname = op.join(
+            qc_folder,
+            "{}-autoreject.h5".format(name)
+        )
+        ar.save(ar_fname, overwrite=True)
+        epochs_ar, rej_log = ar.transform(epochs, return_log=True)
 
-            rej_log.plot(show=False)
-            plt.savefig(op.join(qc_folder, "{}-autoreject-log.png".format(name)))
-            plt.close("all")
+        rej_log.plot(show=False)
+        plt.savefig(op.join(qc_folder, "{}-autoreject-log.png".format(name)))
+        plt.close("all")
 
-            fig = epochs_ar.average().plot(spatial_colors=True, show=False)
-            plt.savefig(op.join(qc_folder, "{}-post-autorej_erf.png".format(name)))
-            plt.close("all")
+        fig = epochs_ar.average().plot(spatial_colors=True, show=False)
+        plt.savefig(op.join(qc_folder, "{}-post-autorej_erf.png".format(name)))
+        plt.close("all")
 
-            cleaned = op.join(sess_path, "autoreject-" + epo.split(sep)[-1])
-            epochs_ar.save(
-                op.join(sess_path, "autoreject-" + epo.split(sep)[-1]),
-                overwrite=True
-            )
-            print("CLEANED EPOCHS SAVED:", cleaned)
+        cleaned = op.join(sess_path, "autoreject-" + epo.split(sep)[-1])
+        epochs_ar.save(
+            cleaned,
+            overwrite=True
+        )
+        beh = beh.drop(axis=0, index=np.where(rej_log.bad_epochs==True)[0])
+        behav_path = op.join(
+            sess_path,
+            "autoreject-{}-{}-{}-{}-beh.csv".format(subject_id, session_id, numero, epo_type)
+        )
+        beh.to_csv(behav_path)
+        print("CLEANED EPOCHS SAVED:", cleaned)
+        print("CLEANED BEHAVIOR SAVED:", behav_path)
