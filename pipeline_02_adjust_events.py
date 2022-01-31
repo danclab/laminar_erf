@@ -124,7 +124,11 @@ for session in sessions:
             diode_ch_name='UADC00%d' % adc_chan_idx
             if diode_ch_name in raw.ch_names:
                 diode,times=raw[diode_ch_name,:]
-                diode_thresh=np.min(diode[0,:])+.8*(np.max(diode[0,:])-np.min(diode[0,:]))
+                n_times=len(times)
+                idx=list(range(int(n_times*.25),int(n_times*.75)))
+                diode_thresh=np.min(diode[0,idx])+.8*(np.max(diode[0,idx])-np.min(diode[0,idx]))
+                #diode_med=np.median(diode[0,:])
+                #diode_thresh=diode_med+np.median(np.abs(diode[0,:]-diode_med))
 
                 diode_up_down=(diode[0,:]>diode_thresh).astype(int)
                 diode_diff = np.diff(diode_up_down)
