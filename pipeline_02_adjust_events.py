@@ -43,7 +43,7 @@ files.make_folder(sub_path)
 sessions = files.get_folders(subject,'ses','')[2]
 sessions.sort()
 
-for session in sessions:
+for session in [sessions[5]]:
     session_id = session.split("/")[-1]
 
     meg_path = op.join(session, "meg")
@@ -120,40 +120,43 @@ for session in sessions:
         print('{} iti events'.format(len(iti_evts)))
 
         diode_times=[]
+
         for adc_chan_idx in range(1,5):
             diode_ch_name='UADC00%d' % adc_chan_idx
             if diode_ch_name in raw.ch_names:
                 diode,times=raw[diode_ch_name,:]
                 n_times=len(times)
-                idx=list(range(int(n_times*.25),int(n_times*.75)))
-                diode_thresh=np.min(diode[0,idx])+.8*(np.max(diode[0,idx])-np.min(diode[0,idx]))
-                #diode_med=np.median(diode[0,:])
-                #diode_thresh=diode_med+np.median(np.abs(diode[0,:]-diode_med))
-
+                idx=range(raw_events[fix_evts[0],0],raw_events[iti_evts[-1],0]+1)
+                diode[0,:]=(diode[0,:]-np.min(diode[0,idx]))/(np.max(diode[0,idx])-np.min(diode[0,idx]))
+                #poss_threshs=np.arange(np.median(diode[0,idx]), np.max(diode[0,idx]), 0.05)
+                #for diode_thresh in poss_threshs:
+                diode_thresh=0.8
                 diode_up_down=(diode[0,:]>diode_thresh).astype(int)
+                diode_up_down[0:raw_events[fix_evts[0],0]]=0
+                diode_up_down[raw_events[iti_evts[-1],0]:]=0
                 diode_diff = np.diff(diode_up_down)
 
-                diode_up_times = np.where(diode_diff > 0)[0]
-                diode_down_times = np.where(diode_diff < 0)[0]
-                if diode_down_times[0]<diode_up_times[0]:
-                    diode_down_times=diode_down_times[1:]
-                if diode_up_times[-1]>diode_down_times[-1]:
-                    diode_up_times=diode_up_times[:-1]
-                diode_durations=(diode_down_times-diode_up_times)/raw.info['sfreq']
-                diode_times=diode_up_times[(diode_durations>1.9) & (diode_durations<2)]
-
-                fig = plt.figure()
-                plt.plot(times, diode[0, :], 'b')
-                plt.plot([times[0], times[-1]], [diode_thresh, diode_thresh], 'r')
+                # diode_up_times = np.where(diode_diff > 0)[0]
+                # diode_down_times = np.where(diode_diff < 0)[0]
+                # if diode_down_times[0]<diode_up_times[0]:
+                #     diode_down_times=diode_down_times[1:]
+                # if diode_up_times[-1]>diode_down_times[-1]:
+                #     diode_up_times=diode_up_times[:-1]
+                # diode_durations=(diode_down_times-diode_up_times)/raw.info['sfreq']
+                # diode_times=diode_up_times[(diode_durations>1.9) & (diode_durations<2)]
+                diode_times=np.where(diode_diff>0)[0]
                 if len(diode_times) == 180 or len(diode_times) == 360:
+                    fig = plt.figure()
+                    plt.plot(times, diode[0, :], 'b')
+                    plt.plot([times[0], times[-1]], [diode_thresh, diode_thresh], 'r')
                     for diode_time in diode_times:
                         plt.plot([times[diode_time], times[diode_time]], [np.min(diode, axis=1), diode_thresh], 'g')
-                plt.savefig(
-                    op.join(qc_folder, "{}-{}-{}-diode_{}.png".format(subject_id, session_id, numero, diode_ch_name))
-                )
-                plt.close("all")
-                if len(diode_times)==180 or len(diode_times)==360:
-                    break
+                    plt.savefig(
+                        op.join(qc_folder, "{}-{}-{}-diode_{}.png".format(subject_id, session_id, numero, diode_ch_name))
+                    )
+                    plt.close("all")
+                    if len(diode_times)==180 or len(diode_times)==360:
+                        break
                 else:
                     diode_times=[]
 
@@ -164,8 +167,8 @@ for session in sessions:
         dots_onset = diode_times
         # In later sessions there was a diode for the dots and the instruction stimulus
         if len(diode_times) > 180:
-            dots_onset = diode_times[1::2]
-            instr_onset = diode_times[2::2]
+            dots_onset = diode_times[0::2]
+            instr_onset = diode_times[1::2]
 
         trial_idx = 0
         for i in range(raw_events.shape[0]):
