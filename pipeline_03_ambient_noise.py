@@ -92,6 +92,7 @@ for session in sessions:
             info['sfreq'],
             win_sz=20,
             spot_sz=5.5,
+            n_iter_max=500,
             show=True,
             prefix="{}/{}-{}-{}-50_1_iter".format(qc_folder, subject_id, session_id, numero)
         )
@@ -102,6 +103,7 @@ for session in sessions:
             info['sfreq'],
             win_sz=20,
             spot_sz=5.5,
+            n_iter_max=500,
             show=True,
             prefix="{}/{}-{}-{}-50_2_iter".format(qc_folder, subject_id, session_id, numero)
         )
