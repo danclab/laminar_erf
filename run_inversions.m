@@ -27,8 +27,8 @@ for sess_idx=1:length(sessions)
         pieces=split(spm_file,'-');
         block_id=pieces{6};
         epo=pieces{7};
-        epoch_average(settings.dataset_path,subj_id,session_id,block_id,epo);
-        invert_localize(settings.dataset_path,subj_id,session_id,block_id,epo);
-        invert_tc(settings.dataset_path,subj_id,session_id,block_id,epo);
+        epoch_average(settings.dataset_path,subj_id,sess_id,block_id,epo);
+        invert_localize(settings.dataset_path,subj_id,sess_id,block_id,epo);
+        invert_tc(settings.dataset_path,subj_id,sess_id,block_id,epo);
     end
 end
