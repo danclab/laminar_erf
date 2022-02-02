@@ -68,6 +68,10 @@ raw_paths = files.get_files(session, "zapline-" + subject_id+"-"+session_id, "-r
 raw_paths.sort()
 raw_path = raw_paths[run_index]
 
+event_paths = files.get_files(session, subject_id+"-"+session_id, "-eve.fif")[2]
+event_paths.sort()
+event_path = event_paths[run_index]
+
 ica_paths = files.get_files(session, subject_id+"-"+session_id, "-ica.fif")[2]
 ica_paths.sort()
 ica_path = ica_paths[run_index]
@@ -80,16 +84,24 @@ ica_json_file = op.join(
 
 print("SUBJ: {}".format(subject_id), session_index, run_index)
 print("INPUT RAW FILE:", raw_path.split(os.sep)[-1])
+print("INPUT EVENT FILE:", event_path.split(os.sep)[-1])
 print("INPUT ICA FILE:", ica_path.split(os.sep)[-1])
 print("INPUT JSON FILE", ica_json_file.split(os.sep)[-1])
 
 raw = mne.io.read_raw_fif(
     raw_path, preload=True, verbose=False
 )
+
+events = mne.read_events(event_path)
+
 ica = mne.preprocessing.read_ica(
     ica_path, verbose=False
 )
 
+raw.crop(
+    tmin=raw.times[events[0,0]],
+    tmax=raw.times[events[-1,0]]
+)
 raw.filter(1,20, verbose=False)
 raw.close()
 

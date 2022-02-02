@@ -69,9 +69,14 @@ for session in sessions:
         numero = str(raw_path.split("-")[-2]).zfill(3)
 
         raw = mne.io.read_raw_fif(raw_path, verbose=False, preload=False)
+        events = mne.read_events(eve_path)
 
         raw_filtered = raw.copy()
-        raw_filtered.load_data().filter(
+        raw_filtered.load_data().crop(
+            tmin=raw_filtered.times[events[0,0]],
+            tmax=raw_filtered.times[events[-1,0]]
+        )
+        raw_filtered.filter(
             l_freq=1.,
             h_freq=60,
             n_jobs=-1

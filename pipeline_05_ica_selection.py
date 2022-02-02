@@ -86,6 +86,9 @@ for session in sessions:
     raw_paths = files.get_files(sess_path, "zapline-" + subject_id +"-"+session_id, "-raw.fif")[2]
     raw_paths.sort()
 
+    event_paths = files.get_files(sess_path, subject_id + "-" + session_id, "-eve.fif")[2]
+    event_paths.sort()
+
     ica_json_file = op.join(
         sess_path,
         "{}-{}-ICA_to_reject.json".format(subject_id, session_id)
@@ -97,7 +100,7 @@ for session in sessions:
     ica_keys = list(ica_files.keys())
     ica_keys.sort()
 
-    raw_ica_edf = list(zip(raw_paths, ica_keys, edf_paths))
+    raw_ica_edf = list(zip(raw_paths, event_paths, ica_keys, edf_paths))
 
     ecg_out = dict()
     eog_out = dict()
@@ -113,7 +116,7 @@ for session in sessions:
 
     ds = Detectors(sfreq)
 
-    for (raw_path, ica_key, edf_path) in raw_ica_edf:
+    for (raw_path, event_path, ica_key, edf_path) in raw_ica_edf:
         ica_path = op.join(
             sess_path,
             ica_key
@@ -121,6 +124,7 @@ for session in sessions:
         numero = str(raw_path.split("-")[-2]).zfill(3)
 
         print("INPUT RAW FILE:", raw_path)
+        print("INPUT EVENT FILE:", event_path)
         print("INPUT ICA FILE:", ica_path)
         print("INPUT EDF FILE:", edf_path)
 
@@ -130,9 +134,15 @@ for session in sessions:
             preload=True
         )
 
+        events = mne.read_events(event_path)
+
         ica = mne.preprocessing.read_ica(
             ica_path,
             verbose=False
+        )
+        raw.crop(
+            tmin=raw.times[events[0, 0]],
+            tmax=raw.times[events[-1, 0]]
         )
         raw.filter(1, 20)
 
