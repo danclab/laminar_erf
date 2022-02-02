@@ -196,8 +196,6 @@ for session in sessions:
             n_jobs=4,
         )
 
-        assert (events[-1, 2] == 70)
-
         raw_path = op.join(
             sess_path,
             "{}-{}-{}-raw.fif".format(subject_id, session_id, numero)
