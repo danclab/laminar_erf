@@ -128,23 +128,18 @@ for session in sessions:
                 n_times=len(times)
                 idx=range(raw_events[fix_evts[0],0],raw_events[iti_evts[-1],0]+1)
                 diode[0,:]=(diode[0,:]-np.min(diode[0,idx]))/(np.max(diode[0,idx])-np.min(diode[0,idx]))
-                #poss_threshs=np.arange(np.median(diode[0,idx]), np.max(diode[0,idx]), 0.05)
-                #for diode_thresh in poss_threshs:
-                diode_thresh=0.8
-                diode_up_down=(diode[0,:]>diode_thresh).astype(int)
-                diode_up_down[0:raw_events[fix_evts[0],0]]=0
-                diode_up_down[raw_events[iti_evts[-1],0]:]=0
-                diode_diff = np.diff(diode_up_down)
+                poss_threshs=np.arange(np.median(diode[0,idx]), np.max(diode[0,idx]), 0.05)
+                for diode_thresh in poss_threshs:
+                    diode_up_down=(diode[0,:]>diode_thresh).astype(int)
+                    diode_up_down[0:raw_events[fix_evts[0],0]]=0
+                    diode_up_down[raw_events[iti_evts[-1],0]:]=0
+                    diode_diff = np.diff(diode_up_down)
+                    diode_times = np.where(diode_diff > 0)[0]
+                    if len(diode_times) == 180 or len(diode_times) == 360:
+                        break
+                    else:
+                        diode_times=[]
 
-                # diode_up_times = np.where(diode_diff > 0)[0]
-                # diode_down_times = np.where(diode_diff < 0)[0]
-                # if diode_down_times[0]<diode_up_times[0]:
-                #     diode_down_times=diode_down_times[1:]
-                # if diode_up_times[-1]>diode_down_times[-1]:
-                #     diode_up_times=diode_up_times[:-1]
-                # diode_durations=(diode_down_times-diode_up_times)/raw.info['sfreq']
-                # diode_times=diode_up_times[(diode_durations>1.9) & (diode_durations<2)]
-                diode_times=np.where(diode_diff>0)[0]
                 if len(diode_times) == 180 or len(diode_times) == 360:
                     fig = plt.figure()
                     plt.plot(times, diode[0, :], 'b')
