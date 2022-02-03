@@ -75,13 +75,13 @@ for session in sessions:
 
     # for epo in epo_paths:
     for epo in epo_paths:
+        print("INPUT FILE:", epo)
         numero = epo.split(sep)[-1].split("-")[4]
         epochs = read_epochs(epo, verbose=False)
         epo_type = epo.split(sep)[-1].split("-")[5]
 
         beh_path = [i for i in beh_paths if numero + '-' + epo_type + '-beh' in i][0]
         eve_path = [i for i in eve_paths if numero + '-eve' in i][0]
-        print("INPUT FILE:", epo)
         print("INPUT EVENT FILE:", eve_path)
         print("INPUT BEHAV FILE:", beh_path)
 
