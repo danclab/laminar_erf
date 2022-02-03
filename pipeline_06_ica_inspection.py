@@ -105,6 +105,13 @@ raw.crop(
 raw.filter(1,20, verbose=False)
 raw.close()
 
+sp.Popen(
+    ["mousepad", str(ica_json_file)],
+    stdout=sp.DEVNULL,
+    stderr=sp.DEVNULL
+)
+print('')
+
 title_ = "sub:{}, session:{}, file: {}".format(subject_id, session_id, ica_path.split(os.sep)[-1])
 
 ica.plot_components(inst=raw, show=False, title=title_)
@@ -113,9 +120,3 @@ ica.plot_sources(inst=raw, show=False, title=title_)
 
 plt.show()
 
-sp.Popen(
-    ["gedit", str(ica_json_file)],
-    stdout=sp.DEVNULL,
-    stderr=sp.DEVNULL
-)
-print('')
