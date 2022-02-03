@@ -74,8 +74,8 @@ for session in sessions:
         print(stim_file)
         raw_stim = scipy.io.loadmat(stim_file)
 
-        responses=raw_behav['data'][0,0][20]
-        trials=raw_stim['stim'][0,0][1]
+        responses=raw_behav['data'][0,0][raw_behav['data'].dtype.names.index('responses')]
+        trials=raw_stim['stim'][0,0][raw_stim['stim'].dtype.names.index('trials')]
 
         trial_n = trials.shape[0]
 
