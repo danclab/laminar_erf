@@ -10,7 +10,10 @@ matlabbatch={};
 batch_idx=1;
 
 matlabbatch{batch_idx}.spm.meeg.averaging.average.D = {fname};
-matlabbatch{batch_idx}.spm.meeg.averaging.average.userobust.standard = false;
+matlabbatch{batch_idx}.spm.meeg.averaging.average.userobust.robust.ks = 3;
+matlabbatch{batch_idx}.spm.meeg.averaging.average.userobust.robust.bycondition = false;
+matlabbatch{batch_idx}.spm.meeg.averaging.average.userobust.robust.savew = false;
+matlabbatch{batch_idx}.spm.meeg.averaging.average.userobust.robust.removebad = true;
 matlabbatch{batch_idx}.spm.meeg.averaging.average.plv = false;
 matlabbatch{batch_idx}.spm.meeg.averaging.average.prefix = 'm';
 batch_idx=batch_idx+1;
