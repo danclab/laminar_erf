@@ -165,9 +165,10 @@ for session in sessions:
                 l_idx=np.where(beh.response==1)[0]
                 r_idx = np.where(beh.response == 2)[0]
 
-                epoch=read_epochs(epoch_path, verbose=False)
-                epoch.load_data()
-                left_epoch = epoch.drop(np.where(beh.response!=1)[0])
+                epoch=read_epochs(epoch_path, verbose=False, preload=True)
+                nl_idx=np.where(beh.response!=1)[0]
+                nl_idx=nl_idx[nl_idx<len(epoch)]
+                left_epoch = epoch.drop(nl_idx)
                 l_beh = beh.drop(axis=0, index=np.where(beh.response!=1)[0])
                 left_epoch_path = op.join(
                     sess_path,
@@ -185,9 +186,10 @@ for session in sessions:
                 print("SAVED:", left_epoch_path)
                 print("SAVED:", left_epoch_behav_path)
 
-                epoch = read_epochs(epoch_path, verbose=False)
-                epoch.load_data()
-                right_epochs = epoch.drop(np.where(beh.response!=2)[0])
+                epoch = read_epochs(epoch_path, verbose=False, preload=True)
+                nr_idx = np.where(beh.response != 2)[0]
+                nr_idx = nr_idx[nr_idx < len(epoch)]
+                right_epochs = epoch.drop(nr_idx)
                 r_beh = beh.drop(axis=0, index=np.where(beh.response!=2)[0])
                 right_epoch_path = op.join(
                     sess_path,
