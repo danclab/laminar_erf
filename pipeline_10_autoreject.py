@@ -79,13 +79,13 @@ for session in sessions:
         print("EVE:", eve_path.split(sep)[-1])
         print("EPO:", epo.split(sep)[-1])
 
-        epochs = read_epochs(epo, verbose=False)
+        epochs = read_epochs(epo, verbose=False, preload=True)
         print("AMOUNT OF EPOCHS:", len(epochs))
         beh = pd.read_csv(beh_path)
 
         epochs_2_drop = np.where(beh.response==0)[0]
+        epochs_2_drop = epochs_2_drop[epochs_2_drop < len(epochs)]
 
-        epochs.load_data()
         epochs = epochs.drop(epochs_2_drop, reason="bad behaviour")
         beh = beh.drop(axis=0, index=epochs_2_drop)
 
