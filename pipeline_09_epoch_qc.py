@@ -88,6 +88,7 @@ for session in sessions:
         # Drop no responses
         beh = pd.read_csv(beh_path)
         rej_idx=np.where(beh.response==0)[0]
+        rej_idx = rej_idx[rej_idx < len(epochs)]
         epochs=epochs.drop(rej_idx)
 
         ch_thr = compute_thresholds(
