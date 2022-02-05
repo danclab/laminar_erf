@@ -84,7 +84,6 @@ for session in sessions:
         beh = pd.read_csv(beh_path)
 
         epochs_2_drop = np.where(beh.response==0)[0]
-        epochs_2_drop = epochs_2_drop[epochs_2_drop < len(epochs)]
 
         epochs = epochs.drop(epochs_2_drop, reason="bad behaviour")
         beh = beh.drop(axis=0, index=epochs_2_drop)

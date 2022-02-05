@@ -151,11 +151,15 @@ for session in sessions:
                 verbose=False,
             )
 
+            beh = pd.read_csv(behav_path)
+            n_trials=len(epoch)
+            if beh.nrows>n_trials:
+                beh=beh.drop(axis=0, index=list(range(n_trials,beh.nrows+1)))
             epoch_behav_path = op.join(
                 sess_path,
                 "{}-{}-{}-{}-beh.csv".format(subject_id, session_id, numero, i)
             )
-            shutil.copy(behav_path, epoch_behav_path)
+            beh.to_csv(epoch_behav_path)
 
             print("SAVED:", epoch_path)
             print("SAVED:", epoch_behav_path)
@@ -167,7 +171,6 @@ for session in sessions:
 
                 epoch=read_epochs(epoch_path, verbose=False, preload=True)
                 nl_idx=np.where(beh.response!=1)[0]
-                nl_idx=nl_idx[nl_idx<len(epoch)]
                 left_epoch = epoch.drop(nl_idx)
                 l_beh = beh.drop(axis=0, index=np.where(beh.response!=1)[0])
                 left_epoch_path = op.join(
@@ -188,7 +191,6 @@ for session in sessions:
 
                 epoch = read_epochs(epoch_path, verbose=False, preload=True)
                 nr_idx = np.where(beh.response != 2)[0]
-                nr_idx = nr_idx[nr_idx < len(epoch)]
                 right_epochs = epoch.drop(nr_idx)
                 r_beh = beh.drop(axis=0, index=np.where(beh.response!=2)[0])
                 right_epoch_path = op.join(

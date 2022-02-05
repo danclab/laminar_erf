@@ -69,7 +69,8 @@ for session in sessions:
             verbose="DEBUG",
             consecutive=True
         )
-        n_evts_to_remove = 0
+
+        # Get each evt type
         trial_evts = np.where(raw_events[:, 2] == 10)[0]
         fix_evts = np.where(raw_events[:, 2] == 20)[0]
         dots_evts = np.where(raw_events[:, 2] == 30)[0]
@@ -77,23 +78,21 @@ for session in sessions:
         instr_evts = np.where(raw_events[:, 2] == 50)[0]
         resp_evts = np.where(raw_events[:, 2] == 60)[0]
         iti_evts = np.where(raw_events[:, 2] == 70)[0]
-        if len(trial_evts) > 180:
-            n_evts_to_remove += 1
-        if len(fix_evts) > 180:
-            n_evts_to_remove += 1
-        if len(dots_evts) > 180:
-            n_evts_to_remove += 1
-        if len(del_evts) > 180:
-            n_evts_to_remove += 1
-        if len(instr_evts) > 180:
-            n_evts_to_remove += 1
-        if len(resp_evts) > 180:
-            n_evts_to_remove += 1
-        if len(iti_evts) > 180:
-            n_evts_to_remove += 1
 
+        # Remove first set of events
+        n_evts_to_remove = 0
+        d = np.diff(raw_events[:, 0]*1/raw.info['sfreq'])
+        d = np.insert(d, 0, .502)
+        x = np.where((d >= .502) & (d <= .5035))[0]
+        consec=np.diff(x)
+        consec=np.insert(consec,0,1)
+        f = np.where(consec == 1)[0]
+        n_evts_to_remove=np.max(f)
+
+        # Remove initial events
         raw_events = raw_events[n_evts_to_remove + 1:, :]
 
+        # Add missing response events
         evt_idx = 0
         while evt_idx < raw_events.shape[0]:
             # instruction cue and no resp
@@ -104,6 +103,11 @@ for session in sessions:
                 raw_events = np.insert(raw_events, evt_idx + 1, [resp_time, 0, 60], axis=0)
             evt_idx += 1
 
+        # Remove events after last ITI event
+        iti_evts = np.where(raw_events[:, 2] == 70)[0]
+        raw_events = raw_events[0:iti_evts[-1] + 1, :]
+
+        # Get events of each type
         trial_evts = np.where(raw_events[:, 2] == 10)[0]
         fix_evts = np.where(raw_events[:, 2] == 20)[0]
         dots_evts = np.where(raw_events[:, 2] == 30)[0]
@@ -119,58 +123,72 @@ for session in sessions:
         print('{} response events'.format(len(resp_evts)))
         print('{} iti events'.format(len(iti_evts)))
 
+        n_trials=len(iti_evts)
+
         diode_times=[]
 
+        # Find diode channel - can be UADC001-UADC004
         for adc_chan_idx in range(1,5):
             diode_ch_name='UADC00%d' % adc_chan_idx
             if diode_ch_name in raw.ch_names:
+
+                # Get channel signal
                 diode,times=raw[diode_ch_name,:]
                 n_times=len(times)
+
+                # Only look from first fixation event to last iti event
                 idx=range(raw_events[fix_evts[0],0],raw_events[iti_evts[-1],0]+1)
+
+                # Normalize between zero and one based on this period
                 diode[0,:]=(diode[0,:]-np.min(diode[0,idx]))/(np.max(diode[0,idx])-np.min(diode[0,idx]))
+
+                # Find right threshold
                 poss_threshs=np.arange(np.median(diode[0,idx]), np.max(diode[0,idx]), 0.05)
                 for diode_thresh in poss_threshs:
+                    # Find when diode up or down
                     diode_up_down=(diode[0,:]>diode_thresh).astype(int)
+                    # Set to down ouside of trials
                     diode_up_down[0:raw_events[fix_evts[0],0]]=0
                     diode_up_down[raw_events[iti_evts[-1],0]:]=0
+                    # Find changes in up/down state
                     diode_diff = np.diff(diode_up_down)
+                    # Times where diode is turning on
                     diode_times = np.where(diode_diff > 0)[0]
-                    if len(diode_times) == 180 or len(diode_times) == 360:
+                    if len(diode_times) == n_trials or len(diode_times) == n_trials*2:
+                        fig = plt.figure()
+                        plt.plot(times, diode[0, :], 'b')
+                        plt.plot([times[0], times[-1]], [diode_thresh, diode_thresh], 'r')
+                        for diode_time in diode_times:
+                            plt.plot([times[diode_time], times[diode_time]], [np.min(diode, axis=1), diode_thresh], 'g')
+                        plt.savefig(
+                            op.join(qc_folder,
+                                    "{}-{}-{}-diode_{}.png".format(subject_id, session_id, numero, diode_ch_name))
+                        )
+                        plt.close("all")
                         break
                     else:
                         diode_times=[]
+                if len(diode_times) == n_trials or len(diode_times) == 2*n_trials:
+                    break
 
-                if len(diode_times) == 180 or len(diode_times) == 360:
-                    fig = plt.figure()
-                    plt.plot(times, diode[0, :], 'b')
-                    plt.plot([times[0], times[-1]], [diode_thresh, diode_thresh], 'r')
-                    for diode_time in diode_times:
-                        plt.plot([times[diode_time], times[diode_time]], [np.min(diode, axis=1), diode_thresh], 'g')
-                    plt.savefig(
-                        op.join(qc_folder, "{}-{}-{}-diode_{}.png".format(subject_id, session_id, numero, diode_ch_name))
-                    )
-                    plt.close("all")
-                    if len(diode_times)==180 or len(diode_times)==360:
-                        break
-                else:
-                    diode_times=[]
-
+        # Num of diode onsets
         num_diode_onsets = len(diode_times)
         print('num diode onsets=%d' % num_diode_onsets)
 
         # In early sessions there was only a diode signal for the dots
         dots_onset = diode_times
         # In later sessions there was a diode for the dots and the instruction stimulus
-        if len(diode_times) > 180:
+        if len(diode_times) == n_trials*2:
             dots_onset = diode_times[0::2]
             instr_onset = diode_times[1::2]
 
+        # Correct event times
         trial_idx = 0
         for i in range(raw_events.shape[0]):
             # Correct dots onset
             if raw_events[i,2] == 30:
                 # Use photodiode signal if exists
-                if len(diode_times) == 180 or len(diode_times) == 360:
+                if len(diode_times) == n_trials or len(diode_times) == n_trials*2:
                     raw_events[i,0] = dots_onset[trial_idx]
                 # Use mean delay if not
                 else:
@@ -178,7 +196,7 @@ for session in sessions:
             # Correct instruction onset
             elif raw_events[i,2] == 50:
                 # Use photodiode signal if exists
-                if len(diode_times) == 360:
+                if len(diode_times) == n_trials*2:
                     raw_events[i,0] = instr_onset[trial_idx]
                 # Use mean delay if not
                 else:
@@ -189,6 +207,7 @@ for session in sessions:
                         raw_events[i, 0] = raw_events[i, 0] + int(0.0302645 * raw.info['sfreq'])
                 trial_idx = trial_idx + 1
 
+        # Downsample data and events together
         raw, events = raw.copy().resample(
             sfreq,
             npad="auto",
