@@ -78,19 +78,70 @@ for session in sessions:
         instr_evts = np.where(raw_events[:, 2] == 50)[0]
         resp_evts = np.where(raw_events[:, 2] == 60)[0]
         iti_evts = np.where(raw_events[:, 2] == 70)[0]
+        print('Initial')
+        print('{} trial events'.format(len(trial_evts)))
+        print('{} fixation events'.format(len(fix_evts)))
+        print('{} dots events'.format(len(dots_evts)))
+        print('{} delay events'.format(len(del_evts)))
+        print('{} instruction cue events'.format(len(instr_evts)))
+        print('{} response events'.format(len(resp_evts)))
+        print('{} iti events'.format(len(iti_evts)))
 
         # Remove first set of events
+        all_stds=[]
+        prev_idx=-1
+        for iti_evt in iti_evts:
+            t_diff=np.diff(raw_events[prev_idx+1:iti_evt+1,0])
+            all_stds.append(np.std(t_diff))
+            prev_idx=iti_evt
+        np.percentile(all_stds,1)
         n_evts_to_remove = 0
-        d = np.diff(raw_events[:, 0]*1/raw.info['sfreq'])
-        d = np.insert(d, 0, .502)
-        x = np.where((d >= .502) & (d <= .5035))[0]
-        consec=np.diff(x)
-        consec=np.insert(consec,0,1)
-        f = np.where(consec == 1)[0]
-        n_evts_to_remove=np.max(f)
+        if all_stds[0]<np.percentile(all_stds,.005):
+            n_evts_to_remove=iti_evts[0]+1
 
         # Remove initial events
-        raw_events = raw_events[n_evts_to_remove + 1:, :]
+        raw_events = raw_events[n_evts_to_remove:, :]
+
+        trial_evts = np.where(raw_events[:, 2] == 10)[0]
+        fix_evts = np.where(raw_events[:, 2] == 20)[0]
+        dots_evts = np.where(raw_events[:, 2] == 30)[0]
+        del_evts = np.where(raw_events[:, 2] == 40)[0]
+        instr_evts = np.where(raw_events[:, 2] == 50)[0]
+        resp_evts = np.where(raw_events[:, 2] == 60)[0]
+        iti_evts = np.where(raw_events[:, 2] == 70)[0]
+        print('Removed initial events')
+        print('{} trial events'.format(len(trial_evts)))
+        print('{} fixation events'.format(len(fix_evts)))
+        print('{} dots events'.format(len(dots_evts)))
+        print('{} delay events'.format(len(del_evts)))
+        print('{} instruction cue events'.format(len(instr_evts)))
+        print('{} response events'.format(len(resp_evts)))
+        print('{} iti events'.format(len(iti_evts)))
+
+        # Add missing ITI events
+        evt_idx = 0
+        while evt_idx < raw_events.shape[0]:
+            # instruction cue and no resp
+            if (raw_events[evt_idx, 2] == 50 or raw_events[evt_idx, 2] == 60) and raw_events[evt_idx + 1, 2] == 10:
+                t_time = raw_events[evt_idx + 1, 0]
+                raw_events = np.insert(raw_events, evt_idx + 1, [t_time-1, 0, 70], axis=0)
+            evt_idx += 1
+
+        trial_evts = np.where(raw_events[:, 2] == 10)[0]
+        fix_evts = np.where(raw_events[:, 2] == 20)[0]
+        dots_evts = np.where(raw_events[:, 2] == 30)[0]
+        del_evts = np.where(raw_events[:, 2] == 40)[0]
+        instr_evts = np.where(raw_events[:, 2] == 50)[0]
+        resp_evts = np.where(raw_events[:, 2] == 60)[0]
+        iti_evts = np.where(raw_events[:, 2] == 70)[0]
+        print('Add missing ITI events')
+        print('{} trial events'.format(len(trial_evts)))
+        print('{} fixation events'.format(len(fix_evts)))
+        print('{} dots events'.format(len(dots_evts)))
+        print('{} delay events'.format(len(del_evts)))
+        print('{} instruction cue events'.format(len(instr_evts)))
+        print('{} response events'.format(len(resp_evts)))
+        print('{} iti events'.format(len(iti_evts)))
 
         # Add missing response events
         evt_idx = 0
@@ -102,6 +153,22 @@ for session in sessions:
                 resp_time = int(instr_time + .5 * (iti_time - instr_time))
                 raw_events = np.insert(raw_events, evt_idx + 1, [resp_time, 0, 60], axis=0)
             evt_idx += 1
+
+        trial_evts = np.where(raw_events[:, 2] == 10)[0]
+        fix_evts = np.where(raw_events[:, 2] == 20)[0]
+        dots_evts = np.where(raw_events[:, 2] == 30)[0]
+        del_evts = np.where(raw_events[:, 2] == 40)[0]
+        instr_evts = np.where(raw_events[:, 2] == 50)[0]
+        resp_evts = np.where(raw_events[:, 2] == 60)[0]
+        iti_evts = np.where(raw_events[:, 2] == 70)[0]
+        print('Added missing resp events')
+        print('{} trial events'.format(len(trial_evts)))
+        print('{} fixation events'.format(len(fix_evts)))
+        print('{} dots events'.format(len(dots_evts)))
+        print('{} delay events'.format(len(del_evts)))
+        print('{} instruction cue events'.format(len(instr_evts)))
+        print('{} response events'.format(len(resp_evts)))
+        print('{} iti events'.format(len(iti_evts)))
 
         # Remove events after last ITI event
         iti_evts = np.where(raw_events[:, 2] == 70)[0]
@@ -115,6 +182,7 @@ for session in sessions:
         instr_evts = np.where(raw_events[:, 2] == 50)[0]
         resp_evts = np.where(raw_events[:, 2] == 60)[0]
         iti_evts = np.where(raw_events[:, 2] == 70)[0]
+        print('Final')
         print('{} trial events'.format(len(trial_evts)))
         print('{} fixation events'.format(len(fix_evts)))
         print('{} dots events'.format(len(dots_evts)))
@@ -122,6 +190,14 @@ for session in sessions:
         print('{} instruction cue events'.format(len(instr_evts)))
         print('{} response events'.format(len(resp_evts)))
         print('{} iti events'.format(len(iti_evts)))
+
+        fig = plt.figure()
+        plt.plot(raw_events[:,0], raw_events[:,2])
+        plt.savefig(
+            op.join(qc_folder,
+                    "{}-{}-{}-events.png".format(subject_id, session_id, numero))
+        )
+        plt.close("all")
 
         n_trials=len(iti_evts)
 
