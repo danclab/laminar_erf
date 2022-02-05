@@ -127,6 +127,15 @@ for session in sessions:
                 raw_events = np.insert(raw_events, evt_idx + 1, [t_time-1, 0, 70], axis=0)
             evt_idx += 1
 
+        # Add missing fixation events
+        evt_idx = 0
+        while evt_idx < raw_events.shape[0]:
+            # trial and no fixation
+            if (raw_events[evt_idx, 2] == 10) and not (raw_events[evt_idx + 1, 2] == 20):
+                t_time = raw_events[evt_idx, 0]
+                raw_events = np.insert(raw_events, evt_idx + 1, [t_time+11, 0, 20], axis=0)
+            evt_idx += 1
+
         trial_evts = np.where(raw_events[:, 2] == 10)[0]
         fix_evts = np.where(raw_events[:, 2] == 20)[0]
         dots_evts = np.where(raw_events[:, 2] == 30)[0]
