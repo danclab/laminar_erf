@@ -122,7 +122,7 @@ for session in sessions:
         evt_idx = 0
         while evt_idx < raw_events.shape[0]:
             # instruction cue and no resp
-            if (raw_events[evt_idx, 2] == 50 or raw_events[evt_idx, 2] == 60) and raw_events[evt_idx + 1, 2] == 10:
+            if (raw_events[evt_idx, 2] == 50 or raw_events[evt_idx, 2] == 60) and not (raw_events[evt_idx + 1, 2] == 70):
                 t_time = raw_events[evt_idx + 1, 0]
                 raw_events = np.insert(raw_events, evt_idx + 1, [t_time-1, 0, 70], axis=0)
             evt_idx += 1
@@ -147,7 +147,7 @@ for session in sessions:
         evt_idx = 0
         while evt_idx < raw_events.shape[0]:
             # instruction cue and no resp
-            if raw_events[evt_idx, 2] == 50 and raw_events[evt_idx + 1, 2] == 70:
+            if raw_events[evt_idx, 2] == 50 and not (raw_events[evt_idx + 1, 2] == 60):
                 instr_time = raw_events[evt_idx, 0]
                 iti_time = raw_events[evt_idx + 1, 0]
                 resp_time = int(instr_time + .5 * (iti_time - instr_time))
