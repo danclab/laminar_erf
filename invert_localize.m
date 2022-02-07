@@ -22,7 +22,7 @@ subj_fs_dir=fullfile(dataset_path,'derivatives/processed',subj_id,'fs');
 subj_surf_dir=fullfile(subj_fs_dir,'surf');
 
 % Data file to load
-data_file=fullfile(data_dir, sprintf('mspm_converted_autoreject-%s-%s-%s-%s-epo.mat', subj_id, session_id, run_id, epo));
+data_file=fullfile(data_dir, sprintf('fmspm_converted_autoreject-%s-%s-%s-%s-epo.mat', subj_id, session_id, run_id, epo));
 
 mri_fname=fullfile(dataset_path,'raw', subj_id, 'mri', 'headcast/t1w.nii');
     
