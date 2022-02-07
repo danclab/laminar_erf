@@ -5,49 +5,51 @@ from utilities import files
 import matlab.engine
 from os import sep
 
-# parsing command line arguments
-try:
-    index = int(sys.argv[1])
-except:
-    print("incorrect arguments")
-    sys.exit()
+def run(index, json_file):
+    # opening a json file
+    with open(json_file) as pipeline_file:
+        parameters = json.load(pipeline_file)
 
-try:
-    json_file = sys.argv[2]
-    print("USING:", json_file)
-except:
-    json_file = "settings.json"
-    print("USING:", json_file)
+    path = parameters["dataset_path"]
 
-# opening a json file
-with open(json_file) as pipeline_file:
-    parameters = json.load(pipeline_file)
+    der_path = op.join(path, "derivatives")
+    files.make_folder(der_path)
+    proc_path = op.join(der_path, "processed")
+    files.make_folder(proc_path)
 
-path = parameters["dataset_path"]
-sfreq = parameters["downsample_dataset"]
+    subjects = files.get_folders_files(proc_path)[0]
+    subjects.sort()
+    subject = subjects[index]
+    subject_id = subject.split("/")[-1]
+    print("ID:", subject_id)
 
-der_path = op.join(path, "derivatives")
-files.make_folder(der_path)
-proc_path = op.join(der_path, "processed")
-files.make_folder(proc_path)
+    sessions = files.get_folders(subject, 'ses', '')[2]
+    sessions.sort()
 
-subjects = files.get_folders_files(proc_path)[0]
-subjects.sort()
-subject = subjects[index]
-subject_id = subject.split("/")[-1]
-print("ID:", subject_id)
+    parasite = matlab.engine.connect_matlab()
 
-raw_meg_dir = op.join(path, "raw")
+    for session in sessions:
+        spm_paths = files.get_files(session, "spm_converted", ".mat")[2]
+        spm_paths.sort()
 
-sessions = files.get_folders(subject,'ses','')[2]
-sessions.sort()
+        for spm_path in spm_paths:
+            print(spm_path)
+            parasite.epoch_average(spm_path, nargout=0)
 
-parasite = matlab.engine.connect_matlab()
 
-for session in sessions:
-    spm_paths = files.get_files(session, "spm_converted", ".mat")[2]
-    spm_paths.sort()
+if __name__=='__main__':
+    # parsing command line arguments
+    try:
+        index = int(sys.argv[1])
+    except:
+        print("incorrect arguments")
+        sys.exit()
 
-    for spm_path in spm_paths:
-        print(spm_path)
-        parasite.epoch_average(spm_path, nargout=0)
+    try:
+        json_file = sys.argv[2]
+        print("USING:", json_file)
+    except:
+        json_file = "settings.json"
+        print("USING:", json_file)
+
+    run(index, json_file)
