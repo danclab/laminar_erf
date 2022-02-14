@@ -5,7 +5,7 @@ from utilities import files
 import matlab.engine
 from os import sep
 
-def run(index, json_file):
+def run(index, json_file, parasite):
     # opening a json file
     with open(json_file) as pipeline_file:
         parameters = json.load(pipeline_file)
@@ -25,8 +25,6 @@ def run(index, json_file):
 
     sessions = files.get_folders(subject, 'ses', '')[2]
     sessions.sort()
-
-    parasite = matlab.engine.connect_matlab()
 
     for session in sessions:
         spm_paths = files.get_files(session, "spm_converted", ".mat")[2]
@@ -52,4 +50,6 @@ if __name__=='__main__':
         json_file = "settings.json"
         print("USING:", json_file)
 
-    run(index, json_file)
+    parasite = matlab.engine.start_matlab()
+
+    run(index, json_file, parasite)
