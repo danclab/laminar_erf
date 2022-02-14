@@ -46,6 +46,7 @@ def run(index, json_file):
         files.make_folder(qc_folder)
 
         epo_paths = files.get_files(sess_path, "sub", "-epo.fif")[2]
+
         epo_paths.sort()
         beh_paths = files.get_files(sess_path, "sub", "-beh.csv")[2]
         beh_paths.sort()
@@ -71,7 +72,7 @@ def run(index, json_file):
             epochs_2_drop = np.where(beh.response == 0)[0]
 
             epochs = epochs.drop(epochs_2_drop, reason="bad behaviour")
-            beh = beh.drop(axis=0, index=epochs_2_drop)
+            beh = beh.drop(beh.index[epochs_2_drop])
 
             epochs.save(
                 op.join(sess_path, "clean-" + epo.split(sep)[-1]),
@@ -122,7 +123,7 @@ def run(index, json_file):
                 cleaned,
                 overwrite=True
             )
-            beh = beh.drop(axis=0, index=np.where(rej_log.bad_epochs == True)[0])
+            beh=beh.drop(beh.index[np.where(rej_log.bad_epochs == True)[0]])
             behav_path = op.join(
                 sess_path,
                 "autoreject-{}-{}-{}-{}-beh.csv".format(subject_id, session_id, numero, epo_type)

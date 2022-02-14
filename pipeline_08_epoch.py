@@ -139,7 +139,7 @@ def run(index, json_file):
                 beh = pd.read_csv(behav_path)
                 n_trials = len(epoch)
                 if len(beh) > n_trials:
-                    beh = beh.drop(axis=0, index=list(range(n_trials, beh.nrows + 1)))
+                    beh = beh.drop(axis=0, index=list(range(n_trials, len(beh))))
                 epoch_behav_path = op.join(
                     sess_path,
                     "{}-{}-{}-{}-beh.csv".format(subject_id, session_id, numero, i)
