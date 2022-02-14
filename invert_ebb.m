@@ -1,5 +1,5 @@
 function out_file=invert_ebb(data_file, coreg_fname, mri_fname, mesh_fname,...
-    nas, lpa, rpa, patch_size, n_temp_modes)
+    nas, lpa, rpa, patch_size, n_temp_modes, woi)
 
 
 % Copy datafile
@@ -53,7 +53,7 @@ matlabbatch{batch_idx}.spm.meeg.source.invertiter.val = 1;
 matlabbatch{batch_idx}.spm.meeg.source.invertiter.whatconditions.all = 1;
 matlabbatch{batch_idx}.spm.meeg.source.invertiter.isstandard.custom.invfunc = 'Classic';
 matlabbatch{batch_idx}.spm.meeg.source.invertiter.isstandard.custom.invtype = 'EBB'; %;
-matlabbatch{batch_idx}.spm.meeg.source.invertiter.isstandard.custom.woi = [-Inf Inf];
+matlabbatch{batch_idx}.spm.meeg.source.invertiter.isstandard.custom.woi = woi;
 matlabbatch{batch_idx}.spm.meeg.source.invertiter.isstandard.custom.foi = [0 256];
 matlabbatch{batch_idx}.spm.meeg.source.invertiter.isstandard.custom.hanning = 0;
 matlabbatch{batch_idx}.spm.meeg.source.invertiter.isstandard.custom.isfixedpatch.randpatch.npatches = 512;
@@ -80,6 +80,6 @@ matlabbatch{batch_idx}.spm.meeg.source.results.foi = [0 0];
 matlabbatch{batch_idx}.spm.meeg.source.results.ctype = 'evoked';
 matlabbatch{batch_idx}.spm.meeg.source.results.space = 0;
 matlabbatch{batch_idx}.spm.meeg.source.results.format = 'mesh';
-matlabbatch{batch_idx}.spm.meeg.source.results.smoothing = 8;
+matlabbatch{batch_idx}.spm.meeg.source.results.smoothing = 0;
 [a,b]=spm_jobman('run', matlabbatch);
 out_file=a{2}.files{1};
