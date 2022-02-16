@@ -5,7 +5,7 @@ function convert_mne_to_spm(orig_res4_file, mne_file, epoched)
 %        mne_file = file path of the MNE (fif file) to convert
 %        epoched = 0 if continuous data, 1 if epoched
 
-addpath('/home/bonaiuto/Dropbox/Toolboxes/spm12')
+addpath('/home/bonaiuto/spm12')
 spm('defaults','eeg');
 
 % Create file path for result
