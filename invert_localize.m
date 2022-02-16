@@ -11,11 +11,11 @@ patch_size=5;
 n_temp_modes=4;
 woi=[-Inf Inf];
 if contains(epo, 'motor')
-    woi=[-75 125];
+    woi=[-100 200];
 elseif contains(epo,'visual1')
-    woi=[50 100];
+    woi=[100 300];
 elseif contains(epo,'visual2')
-    woi=[50 100];
+    woi=[100 300];
 end
 
 subj_info=tdfread(fullfile(dataset_path,'raw/participants.tsv'));
