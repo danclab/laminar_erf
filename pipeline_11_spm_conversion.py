@@ -46,7 +46,7 @@ def run(index, json_file, parasite):
             epo_types.append(epo.split(sep)[-1].split("-")[5])
 
         for epo_type in epo_types:
-            fif_paths = files.get_files(session, "autoreject-sub", epo_type + "-epo.fif")[2]
+            fif_paths = files.get_files(session, "clean-sub", epo_type + "-epo.fif")[2]
 
             fif_paths.sort()
 

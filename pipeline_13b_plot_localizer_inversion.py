@@ -43,10 +43,10 @@ def run(index, json_file):
             epo_types.append(epo.split(sep)[-1].split("-")[5])
 
         for epo_type in epo_types:
-            res_fnames = files.get_files(op.join(session,'spm'), "invert_mspm_converted", epo_type+"-epo_localizer_results.json")[2]
+            res_fnames = files.get_files(op.join(session, 'spm'), "invert_mspm_converted_clean", epo_type + "-epo_localizer_results.json")[2]
             res_fnames.sort()
 
-            epo_paths = files.get_files(session, "autoreject", epo_type+"-epo.fif")[2]
+            epo_paths = files.get_files(session, "clean", epo_type + "-epo.fif")[2]
 
             fig = plt.figure(figsize=(18, 18))
 
@@ -144,7 +144,7 @@ def run(index, json_file):
                 op.join(
                     session,
                     'spm',
-                    'invert_mspm_converted_autoreject-{}-{}-{}-epo_localizer_results.png'.format(
+                    'invert_mspm_converted_clean-{}-{}-{}-epo_localizer_results.png'.format(
                         subject_id, session_id, epo_type)
                 ),
                 dpi=300,

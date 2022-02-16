@@ -38,8 +38,9 @@ def run(index, json_file, parasite):
     for session in sessions:
         session_id = session.split("/")[-1]
 
-        spm_paths = files.get_files(session, "mspm_converted", "-epo.mat")[2]
-        epo_paths = files.get_files(session, "autoreject", "-epo.fif")[2]
+        spm_paths = files.get_files(session, "mspm_converted_clean", "-epo.mat")[2]
+        spm_paths.sort()
+        epo_paths = files.get_files(session, "clean", "-epo.fif")[2]
 
         for spm_path in spm_paths:
             epo_type = spm_path.split(sep)[-1].split("-")[6]
