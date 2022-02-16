@@ -24,7 +24,7 @@ end
 subj_fs_dir=fullfile(dataset_path,'derivatives/processed',subj_id,'fs');
 subj_surf_dir=fullfile(subj_fs_dir,'surf');
 
-data_file=fullfile(data_dir, sprintf('mspm_converted_autoreject-%s-%s-%s-%s-epo.mat', subj_id, session_id, run_id, epo));
+data_file=fullfile(data_dir, sprintf('mspm_converted_clean-%s-%s-%s-%s-epo.mat', subj_id, session_id, run_id, epo));
 D=spm_eeg_load(data_file);
 [path,base,ext]=fileparts(data_file);
 

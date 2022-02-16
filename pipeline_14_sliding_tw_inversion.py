@@ -38,7 +38,8 @@ def run(index, json_file, parasite):
     for session in sessions:
         session_id = session.split("/")[-1]
 
-        localizer_paths = files.get_files(op.join(session,'spm'), "invert", "-epo_localizer_results.json")[2]
+        localizer_paths = files.get_files(op.join(session,'spm'), "invert_mspm_converted_clean", "-epo_localizer_results.json")[2]
+        localizer_paths.sort()
 
         for localizer_path in localizer_paths:
             epo_type = localizer_path.split(sep)[-1].split("-")[6]
