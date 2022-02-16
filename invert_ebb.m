@@ -80,6 +80,6 @@ matlabbatch{batch_idx}.spm.meeg.source.results.foi = [0 0];
 matlabbatch{batch_idx}.spm.meeg.source.results.ctype = 'evoked';
 matlabbatch{batch_idx}.spm.meeg.source.results.space = 0;
 matlabbatch{batch_idx}.spm.meeg.source.results.format = 'mesh';
-matlabbatch{batch_idx}.spm.meeg.source.results.smoothing = 0;
+matlabbatch{batch_idx}.spm.meeg.source.results.smoothing = 8;
 [a,b]=spm_jobman('run', matlabbatch);
 out_file=a{2}.files{1};
