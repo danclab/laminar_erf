@@ -16,7 +16,7 @@ except:
     json_file = "settings.json"
     print("USING:", json_file)
 
-parasite = matlab.engine.connect_matlab()
+parasite = matlab.engine.start_matlab()
 
 pipeline_11_spm_conversion.run(index, json_file, parasite)
 pipeline_12_epoch_average.run(index, json_file, parasite)
