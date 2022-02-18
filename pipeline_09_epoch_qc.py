@@ -71,7 +71,7 @@ def run(index, json_file):
 
             # Drop no responses
             beh = pd.read_csv(beh_path)
-            rej_idx = np.where(beh.response == 0)[0]
+            rej_idx = np.where((beh.response == 0) | (beh.rt < .1))[0]
             epochs = epochs.drop(rej_idx)
 
             ch_thr = compute_thresholds(
