@@ -38,7 +38,7 @@ def run(index, json_file, parasite):
     for session in sessions:
         session_id = session.split("/")[-1]
 
-        localizer_paths = files.get_files(op.join(session,'spm'), "invert_mspm_converted_clean", "-epo_localizer_results.json")[2]
+        localizer_paths = files.get_files(op.join(session, 'spm'), "invert_fmspm_converted_autoreject", "-epo_localizer_results.json")[2]
         localizer_paths.sort()
 
         for localizer_path in localizer_paths:
@@ -54,7 +54,7 @@ def run(index, json_file, parasite):
                 peak_idx = localizer_results['localizers'][localizer]['peak_idx']
 
                 res_fname = parasite.invert_tc(path, subject_id, session_id,
-                                               numero, epo_type, peak_idx, localizer,
+                                               numero, epo_type, peak_idx+1, localizer,
                                                nargout=1)
 
                 with open(res_fname) as results_file:
@@ -89,7 +89,7 @@ def run(index, json_file, parasite):
                 '{}.png'.format(base),
                 dpi=300,
                 pad_inches=0,
-                transparent=True
+                transparent=False
             )
             plt.close("all")
 

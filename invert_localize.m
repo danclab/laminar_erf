@@ -34,7 +34,7 @@ subj_fs_dir=fullfile(dataset_path,'derivatives/processed',subj_id,'fs');
 subj_surf_dir=fullfile(subj_fs_dir,'surf');
 
 % Data file to load
-data_file=fullfile(data_dir, sprintf('mspm_converted_clean-%s-%s-%s-%s-epo.mat', subj_id, session_id, run_id, epo));
+data_file=fullfile(data_dir, sprintf('fmspm_converted_autoreject-%s-%s-%s-%s-epo.mat', subj_id, session_id, run_id, epo));
 
 mri_fname=fullfile(dataset_path,'raw', subj_id, 'mri', 'headcast/t1w.nii');
     
@@ -83,15 +83,15 @@ for s_idx=1:length(surfaces)
     U=D.inv{1}.inverse.U{1};
     MU=M*U;
     It   = D.inv{1}.inverse.It;
-    
+
     mu_fname=fullfile(output_dir, sprintf('%s_localize_MU_%s.tsv',surface,base));
     dlmwrite(mu_fname, MU, '\t');
     invert_localizer_results.mu_fname{s_idx}=mu_fname;
-    
+
     it_fname=fullfile(output_dir, sprintf('%s_localize_It_%s.tsv',surface,base));
     dlmwrite(it_fname, It, '\t');
     invert_localizer_results.it_fname{s_idx}=it_fname;
-    
+
     res_fname=fullfile(output_dir, sprintf('%s_localize_res_%s.tsv',surface,base));
     dlmwrite(res_fname, mesh_results.cdata(:), '\t');
     invert_localizer_results.res_fname{s_idx}=res_fname;
