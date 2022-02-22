@@ -1,4 +1,4 @@
-function out_file=invert_tc(dataset_path, subj_id, session_id, run_id, epo, prior, localizer)
+function out_file=invert_tc(dataset_path, subj_id, session_id, run_id, epo, prior)
 
 addpath('/home/bonaiuto/spm12')
 spm('defaults','eeg');
@@ -24,7 +24,7 @@ end
 subj_fs_dir=fullfile(dataset_path,'derivatives/processed',subj_id,'fs');
 subj_surf_dir=fullfile(subj_fs_dir,'surf');
 
-data_file=fullfile(data_dir, sprintf('fmspm_converted_autoreject-%s-%s-%s-%s-epo.mat', subj_id, session_id, run_id, epo));
+data_file=fullfile(output_dir, sprintf('fmspm_converted_autoreject-%s-%s-%s-%s-epo.mat', subj_id, session_id, run_id, epo));
 D=spm_eeg_load(data_file);
 [path,base,ext]=fileparts(data_file);
 
@@ -52,7 +52,7 @@ priors={prior, prior};
 % Run sliding window inversion for each mesh
 for m_idx=1:length(mesh_names)
     [path,base,ext]=fileparts(data_file);
-    coreg_fname=fullfile(output_dir, sprintf('%s_localizer_%s_sliding_window_%s.mat',localizer,mesh_names{m_idx},base));
+    coreg_fname=fullfile(output_dir, sprintf('%s_sliding_window_%s.mat',mesh_names{m_idx},base));
 
     [f_vals,wois]=invert_sliding_window(priors{m_idx},...
         data_file, coreg_fname, mri_fname, mesh_names{m_idx}, mesh_fnames{m_idx},...
@@ -82,7 +82,7 @@ invert_tc_results.right_idx=right_idx;
 invert_tc_results.tc_fvals=tc_fvals;  
 invert_tc_results.f_diff=tc_fvals(2,left_idx:right_idx)-tc_fvals(1,left_idx:right_idx);
 
-out_file=fullfile(output_dir, sprintf('invert_%s_localizer_%s_tc_results.json',localizer,base));
+out_file=fullfile(output_dir, sprintf('invert_%s_tc_results.json',base));
 
 fid = fopen(out_file,'w');
 fwrite(fid, jsonencode(invert_tc_results)); 

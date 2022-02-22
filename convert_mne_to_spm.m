@@ -10,7 +10,7 @@ spm('defaults','eeg');
 
 % Create file path for result
 [filepath,name,ext] = fileparts(mne_file);
-spm_filename=fullfile(filepath, sprintf('spm_converted_%s.mat',name));
+spm_filename=fullfile(filepath, 'spm', sprintf('spm_converted_%s.mat',name));
 
 % Setup SPM batch
 clear jobs

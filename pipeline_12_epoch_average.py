@@ -27,7 +27,7 @@ def run(index, json_file, parasite):
     sessions.sort()
 
     for session in sessions:
-        spm_paths = files.get_files(session, "spm_converted_autoreject", ".mat")[2]
+        spm_paths = files.get_files(op.join(session,'spm'), "spm_converted_autoreject", ".mat")[2]
         spm_paths.sort()
 
         for spm_path in spm_paths:

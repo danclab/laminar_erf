@@ -31,6 +31,9 @@ def run(index, json_file, parasite):
     for session in sessions:
         session_id = session.split("/")[-1]
 
+        spm_path = op.join(session, "spm")
+        files.make_folder(spm_path)
+
         raw_meg_path = op.join(raw_meg_dir, subject_id, session_id, "meg")
         ds_paths = files.get_folders_files(raw_meg_path)[0]
         ds_paths = [i for i in ds_paths if "misc" not in i]

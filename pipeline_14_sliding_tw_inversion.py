@@ -2,17 +2,11 @@ import sys
 import json
 import os.path as op
 
-from mne import read_epochs
-
-from extra.tools import dump_the_dict
 from utilities import files
 import matlab.engine
 from os import sep
-import nibabel as nb
-import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib_surface_plotting import plot_surf
 
 def run(index, json_file, parasite):
     # opening a json file
@@ -48,40 +42,38 @@ def run(index, json_file, parasite):
             with open(localizer_path) as results_file:
                 localizer_results = json.load(results_file)
 
-            fig = plt.figure(figsize=(18,18))
+            fig = plt.figure(figsize=(18,6))
+            peak_idx = localizer_results['peak_idx']
 
-            for l_idx,localizer in enumerate(['pial','white','mean']):
-                peak_idx = localizer_results['localizers'][localizer]['peak_idx']
+            res_fname = parasite.invert_tc(path, subject_id, session_id,
+                                           numero, epo_type, peak_idx+1,
+                                           nargout=1)
 
-                res_fname = parasite.invert_tc(path, subject_id, session_id,
-                                               numero, epo_type, peak_idx+1, localizer,
-                                               nargout=1)
+            with open(res_fname) as results_file:
+                results = json.load(results_file)
 
-                with open(res_fname) as results_file:
-                    results = json.load(results_file)
+            t_g0 = np.where(np.array(localizer_results['times']) > 0)[0]
+            p_source=np.array(localizer_results['pial_source'])
+            max_idx = np.argmax(np.abs(p_source[t_g0]))
+            if p_source[t_g0][max_idx] > 0:
+                p_source = -1 * p_source
+            w_source = np.array(localizer_results['white_source'])
+            max_idx = np.argmax(np.abs(w_source[t_g0]))
+            if w_source[t_g0][max_idx] > 0:
+                w_source = -1 * w_source
 
-                t_g0 = np.where(np.array(localizer_results['times']) > 0)[0]
-                p_source=np.array(localizer_results['localizers'][localizer]['pial_source'])
-                max_idx = np.argmax(np.abs(p_source[t_g0]))
-                if p_source[t_g0][max_idx] > 0:
-                    p_source = -1 * p_source
-                w_source = np.array(localizer_results['localizers'][localizer]['white_source'])
-                max_idx = np.argmax(np.abs(w_source[t_g0]))
-                if w_source[t_g0][max_idx] > 0:
-                    w_source = -1 * w_source
+            ax = plt.subplot(1, 2, 1)
+            plt.plot(localizer_results['times'], p_source)
+            plt.plot(localizer_results['times'], w_source)
+            plt.legend(['pial', 'white'])
+            plt.xlabel('Time (s)')
+            plt.ylabel('Source density (pAm/mm^2)')
 
-                ax = plt.subplot(3, 2, l_idx*2+1)
-                plt.plot(localizer_results['times'], p_source)
-                plt.plot(localizer_results['times'], w_source)
-                plt.legend(['pial', 'white'])
-                plt.xlabel('Time (s)')
-                plt.ylabel('Source density (pAm/mm^2)')
-                plt.title('{} localizer'.format(localizer))
-                ax = plt.subplot(3, 2, l_idx*2+2)
-                inner_times=results['times'][results['left_idx']-1:results['right_idx']]
-                plt.plot(inner_times, results['f_diff'])
-                plt.xlabel('Time (s)')
-                plt.ylabel('\Delta F')
+            ax = plt.subplot(1, 2, 2)
+            inner_times=results['times'][results['left_idx']-1:results['right_idx']]
+            plt.plot(inner_times, results['f_diff'])
+            plt.xlabel('Time (s)')
+            plt.ylabel('\Delta F')
 
             [base, ext] = op.splitext(res_fname)
             fig.suptitle("{}-{}-{}".format(subject_id, session_id, numero))
@@ -92,10 +84,6 @@ def run(index, json_file, parasite):
                 transparent=False
             )
             plt.close("all")
-
-
-
-
 
 
 if __name__=='__main__':
