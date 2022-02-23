@@ -234,9 +234,9 @@ def normalized(a, axis=-1, order=2):
 def plot_surf(vertices, faces, overlay, rotate=[90, 270], cmap='viridis', filename='plot.png', label=False,
               vmax=None, vmin=None, x_rotate=270, pvals=None, colorbar=True, cmap_label='value',
               title=None, mask=None, base_size=6, arrows=None, arrow_subset=None, arrow_size=0.5,
-              arrow_colours=None, arrow_head=0.05, arrow_width=0.001, mask_colour=None, transparency=1, show_back=False,
-              alpha_colour=None, flat_map=False, z_rotate=0, parcel=None, parcel_cmap=None, filled_parcels=False,
-              return_ax=False, ax=None):
+              arrow_colours=None, arrow_head=0.05, arrow_width=0.001, coords=None, mask_colour=None, transparency=1,
+              show_back=False, alpha_colour=None, flat_map=False, z_rotate=0, parcel=None, parcel_cmap=None,
+              filled_parcels=False, return_ax=False, ax=None):
     """ This function plot mesh surface with a given overlay.
         Features available : display in flat surface, display parcellation on top, display gradients arrows on top
 
@@ -280,6 +280,10 @@ def plot_surf(vertices, faces, overlay, rotate=[90, 270], cmap='viridis', filena
         arrow_size   : float, optional
                        size of the arrow
         arrow_colours:
+
+        coords       : numpy array, optional
+                       displays spheres on top of the surface
+
         alpha_colour : float, optional
                        value to play with transparency of the overlay
         flat_map     : bool, optional
@@ -298,6 +302,8 @@ def plot_surf(vertices, faces, overlay, rotate=[90, 270], cmap='viridis', filena
     """
     vertices = vertices.astype(np.float)
     F = faces.astype(int)
+    if coords is not None:
+        coords = (coords - (vertices.max(0) + vertices.min(0)) / 2) / max(vertices.max(0) - vertices.min(0))
     vertices = (vertices - (vertices.max(0) + vertices.min(0)) / 2) / max(vertices.max(0) - vertices.min(0))
     if not isinstance(rotate, list):
         rotate = [rotate]
@@ -382,6 +388,10 @@ def plot_surf(vertices, faces, overlay, rotate=[90, 270], cmap='viridis', filena
                 A_dir /= A_dir[:, 3].reshape(-1, 1)
             # A_dir *= 0.1;
 
+            if coords is not None:
+                C_base = np.c_[coords, np.ones(coords.shape[0])] @ MVP.T
+                C_base /= C_base[:, 3].reshape(-1, 1)
+
             V = V[F]
 
             # triangle coordinates
@@ -428,6 +438,11 @@ def plot_surf(vertices, faces, overlay, rotate=[90, 270], cmap='viridis', filena
                                  head_width=arrow_head, width=arrow_width,
                                  color=arrow_colour)
                     # ax.arrow(A_base[idx,0], A_base[idx,1], A_dir[i,0], A_dir[i,1], head_width=0.01)
+            if coords is not None:
+                for i in range(coords.shape[0]):
+                    circle = plt.Circle(C_base[i,:], 0.02, color='r')
+                    ax.add_patch(circle)
+
             #plt.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
 
     if colorbar:
