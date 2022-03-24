@@ -234,7 +234,8 @@ def normalized(a, axis=-1, order=2):
 def plot_surf(vertices, faces, overlay, rotate=[90, 270], cmap='viridis', filename='plot.png', label=False,
               vmax=None, vmin=None, x_rotate=270, pvals=None, colorbar=True, cmap_label='value',
               title=None, mask=None, base_size=6, arrows=None, arrow_subset=None, arrow_size=0.5,
-              arrow_colours=None, arrow_head=0.05, arrow_width=0.001, coords=None, mask_colour=None, transparency=1,
+              arrow_colours=None, arrow_head=0.05, arrow_width=0.001, coords=None, coord_colours=None, coord_size=0.02,
+              mask_colour=None, transparency=1,
               show_back=False, alpha_colour=None, flat_map=False, z_rotate=0, parcel=None, parcel_cmap=None,
               filled_parcels=False, return_ax=False, ax=None):
     """ This function plot mesh surface with a given overlay.
@@ -283,6 +284,7 @@ def plot_surf(vertices, faces, overlay, rotate=[90, 270], cmap='viridis', filena
 
         coords       : numpy array, optional
                        displays spheres on top of the surface
+        coord_colours:
 
         alpha_colour : float, optional
                        value to play with transparency of the overlay
@@ -440,7 +442,10 @@ def plot_surf(vertices, faces, overlay, rotate=[90, 270], cmap='viridis', filena
                     # ax.arrow(A_base[idx,0], A_base[idx,1], A_dir[i,0], A_dir[i,1], head_width=0.01)
             if coords is not None:
                 for i in range(coords.shape[0]):
-                    circle = plt.Circle(C_base[i,:], 0.02, color='r')
+                    coord_colour = 'r'
+                    if coord_colours is not None:
+                        coord_colour = coord_colours[i]
+                    circle = plt.Circle(C_base[i,:], coord_size, color=coord_colour)
                     ax.add_patch(circle)
 
             #plt.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
