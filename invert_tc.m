@@ -5,7 +5,7 @@ spm('defaults','eeg');
 spm_jobman('initcfg');
 
 patch_size=5;
-win_size=10;
+win_size=25;
 win_overlap=true;
 n_temp_modes=4;
 
