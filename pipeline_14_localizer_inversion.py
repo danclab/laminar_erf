@@ -49,7 +49,12 @@ def run(index, json_file, parasite):
 
             epo_path = [i for i in epo_paths if numero + '-' + epo_type + '-epo' in i][0]
 
-            res_fname=parasite.invert_localize(path, subject_id, session_id, numero, epo_type, nargout=1)
+            woi_path = op.join(subject, '{}-{}-epo-woi.json'.format(subject_id, epo_type))
+            with open(woi_path) as woi_file:
+                woi_results = json.load(woi_file)
+
+            woi=[x*1000.0 for x in woi_results['woi']]
+            res_fname=parasite.invert_localize(path, subject_id, session_id, numero, epo_type, woi, nargout=1)
 
             epochs = read_epochs(epo_path, verbose=False, preload=True)
             epochs.pick_types(meg=True, ref_meg=False)

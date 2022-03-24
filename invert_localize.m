@@ -1,4 +1,4 @@
-function out_file=invert_localize(dataset_path, subj_id, session_id, run_id, epo)
+function out_file=invert_localize(dataset_path, subj_id, session_id, run_id, epo, woi)
 
 addpath('/home/bonaiuto/spm12')
 spm('defaults','eeg');
@@ -8,14 +8,8 @@ set(0,'DefaultFigureVisible','off')
 
 patch_size=5;
 n_temp_modes=4;
-woi=[-Inf Inf];
-if contains(epo, 'motor')
-    woi=[-100 200];
-elseif contains(epo,'visual1')
-    woi=[100 300];
-elseif contains(epo,'visual2')
-    woi=[100 300];
-end
+woi=cell2mat(woi);
+disp(woi)
 
 subj_info=tdfread(fullfile(dataset_path,'raw/participants.tsv'));
 s_idx=find(strcmp(cellstr(subj_info.subj_id),subj_id));
