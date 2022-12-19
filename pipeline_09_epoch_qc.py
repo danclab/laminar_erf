@@ -50,8 +50,6 @@ def run(index, json_file):
         epo_paths.sort()
         beh_paths = files.get_files(sess_path, "sub", "-beh.csv")[2]
         beh_paths.sort()
-        eve_paths = files.get_files(sess_path, "sub", "-eve.fif")[2]
-        eve_paths.sort()
 
         cmap = colors.ListedColormap(["#FFFFFF", "#CFEEFA", "#FFDE00", "#FF9900", "#FF0000", "#000000"])
         boundaries = [-0.9, -0.1, 1.1, 10, 100, 1000, 10000]
@@ -65,8 +63,6 @@ def run(index, json_file):
             epo_type = epo.split(sep)[-1].split("-")[5]
 
             beh_path = [i for i in beh_paths if numero + '-' + epo_type + '-beh' in i][0]
-            eve_path = [i for i in eve_paths if numero + '-eve' in i][0]
-            print("INPUT EVENT FILE:", eve_path)
             print("INPUT BEHAV FILE:", beh_path)
 
             # Drop no responses
