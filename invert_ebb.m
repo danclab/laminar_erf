@@ -1,5 +1,5 @@
 function out_file=invert_ebb(data_file, coreg_fname, mri_fname, mesh_fname,...
-    nas, lpa, rpa, patch_size, n_temp_modes, woi)
+    nas, lpa, rpa, patch_size, n_temp_modes, woi, res_woi)
 
 
 % Copy datafile
@@ -75,7 +75,7 @@ batch_idx=batch_idx+1;
 % Export inversion results as mesh
 matlabbatch{batch_idx}.spm.meeg.source.results.D = {coreg_fname};
 matlabbatch{batch_idx}.spm.meeg.source.results.val = 1;
-matlabbatch{batch_idx}.spm.meeg.source.results.woi = [-Inf Inf];
+matlabbatch{batch_idx}.spm.meeg.source.results.woi = res_woi;
 matlabbatch{batch_idx}.spm.meeg.source.results.foi = [0 0];
 matlabbatch{batch_idx}.spm.meeg.source.results.ctype = 'evoked';
 matlabbatch{batch_idx}.spm.meeg.source.results.space = 0;
