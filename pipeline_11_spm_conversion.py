@@ -2,10 +2,10 @@ import sys
 import json
 import os.path as op
 from utilities import files
-import matlab.engine
+from lameg.util import fif_spm_conversion
 from os import sep
 
-def run(index, json_file, parasite):
+def run(index, json_file):
     # opening a json file
     with open(json_file) as pipeline_file:
         parameters = json.load(pipeline_file)
@@ -17,13 +17,13 @@ def run(index, json_file, parasite):
     proc_path = op.join(der_path, "processed")
     files.make_folder(proc_path)
 
-    subjects = files.get_folders_files(proc_path)[0]
+    subjects = files.get_folders(proc_path,'sub-','')[2]
     subjects.sort()
     subject = subjects[index]
     subject_id = subject.split("/")[-1]
     print("ID:", subject_id)
 
-    raw_meg_dir = op.join(path, "raw")
+    raw_meg_dir = op.join(parameters["dataset_path"], "raw")
 
     sessions = files.get_folders(subject, 'ses', '')[2]
     sessions.sort()
@@ -41,8 +41,6 @@ def run(index, json_file, parasite):
         res4_paths = [files.get_files(i, "", ".res4")[2][0] for i in ds_paths]
         res4_paths.sort()
 
-        #### MODIFY THE FIF SEARCH PATHS ####
-
         epo_paths = files.get_files(session, subject_id + "-" + session_id + "-001", "-epo.fif")[2]
         epo_types = []
         for epo in epo_paths:
@@ -56,7 +54,13 @@ def run(index, json_file, parasite):
             fif_res4_paths = list(zip(fif_paths, res4_paths))
             for fif, res4 in fif_res4_paths:
                 print(fif, res4)
-                parasite.convert_mne_to_spm(res4, fif, 1, nargout=0)
+
+                fif_spm_conversion(
+                    fif, res4, spm_path,
+                    prefix="spm_converted_",
+                    epoched=True
+                )
+
 
 
 if __name__=='__main__':
@@ -74,6 +78,4 @@ if __name__=='__main__':
         json_file = "settings.json"
         print("USING:", json_file)
 
-    parasite = matlab.engine.start_matlab()
-
-    run(index, json_file, parasite)
+    run(index, json_file)

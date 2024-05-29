@@ -141,7 +141,7 @@ if __name__=='__main__':
         json_file = sys.argv[2]
         print("USING:", json_file)
     except:
-        json_file = "../settings.json"
+        json_file = "settings.json"
         print("USING:", json_file)
 
     run(index, json_file)
