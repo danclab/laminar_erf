@@ -22,7 +22,7 @@ def run(index, json_file):
     proc_path = op.join(der_path, "processed")
     files.make_folder(proc_path)
 
-    subjects = files.get_folders_files(proc_path)[0]
+    subjects = files.get_folders(proc_path,'sub-','')[2]
     subjects.sort()
     subject = subjects[index]
     subject_id = subject.split("/")[-1]
@@ -41,7 +41,10 @@ def run(index, json_file):
         sess_path = op.join(sub_path, session_id)
         files.make_folder(sess_path)
 
-        qc_folder = op.join(sess_path, "QC")
+        out_sess_path = op.join(sub_path, session_id)
+        files.make_folder(out_sess_path)
+
+        qc_folder = op.join(out_sess_path, "QC")
         files.make_folder(qc_folder)
 
         raw_paths = files.get_files(sess_path, "zapline-" + subject_id + "-" + session_id, "-raw.fif")[2]
@@ -107,25 +110,24 @@ def run(index, json_file):
             )
 
             epochs_dict = {
-                "visual1": [30, -.2, .8, -.2, 0],
-                "visual2": [50, -.2, .8, -.2, 0],
-                "motor": [60, -.5, .5, -.5, -.3]
+                "visual": [30, -1, 3.5],
+                "motor": [60, -2, 2]
             }
 
             for i in epochs_dict.keys():
-                trig, tmin, tmax, bmin, bmax = epochs_dict[i]
+                trig, tmin, tmax = epochs_dict[i]
                 epoch = mne.Epochs(
                     raw,
                     mne.pick_events(events, include=trig),
                     tmin=tmin,
                     tmax=tmax,
-                    baseline=(bmin, bmax),
+                    baseline=None,
                     verbose=True,
                     detrend=1
                 )
 
                 epoch_path = op.join(
-                    sess_path,
+                    out_sess_path,
                     "{}-{}-{}-{}-epo.fif".format(subject_id, session_id, numero, i)
                 )
 
@@ -141,56 +143,13 @@ def run(index, json_file):
                 if len(beh) > n_trials:
                     beh = beh.drop(axis=0, index=list(range(n_trials, len(beh))))
                 epoch_behav_path = op.join(
-                    sess_path,
+                    out_sess_path,
                     "{}-{}-{}-{}-beh.csv".format(subject_id, session_id, numero, i)
                 )
                 beh.to_csv(epoch_behav_path)
 
                 print("SAVED:", epoch_path)
                 print("SAVED:", epoch_behav_path)
-
-                if i == 'motor':
-                    beh = pd.read_csv(epoch_behav_path)
-
-                    epoch = read_epochs(epoch_path, verbose=False, preload=True)
-                    nl_idx = np.where(beh.response != 1)[0]
-                    left_epoch = epoch.drop(nl_idx)
-                    l_beh = beh.drop(axis=0, index=nl_idx)
-                    left_epoch_path = op.join(
-                        sess_path,
-                        "{}-{}-{}-{}_left-epo.fif".format(subject_id, session_id, numero, i)
-                    )
-                    left_epoch.save(
-                        left_epoch_path,
-                        overwrite=True
-                    )
-                    left_epoch_behav_path = op.join(
-                        sess_path,
-                        "{}-{}-{}-{}_left-beh.csv".format(subject_id, session_id, numero, i)
-                    )
-                    l_beh.to_csv(left_epoch_behav_path)
-                    print("SAVED:", left_epoch_path)
-                    print("SAVED:", left_epoch_behav_path)
-
-                    epoch = read_epochs(epoch_path, verbose=False, preload=True)
-                    nr_idx = np.where(beh.response != 2)[0]
-                    right_epochs = epoch.drop(nr_idx)
-                    r_beh = beh.drop(axis=0, index=nr_idx)
-                    right_epoch_path = op.join(
-                        sess_path,
-                        "{}-{}-{}-{}_right-epo.fif".format(subject_id, session_id, numero, i)
-                    )
-                    right_epochs.save(
-                        right_epoch_path,
-                        overwrite=True
-                    )
-                    right_epoch_behav_path = op.join(
-                        sess_path,
-                        "{}-{}-{}-{}_right-beh.csv".format(subject_id, session_id, numero, i)
-                    )
-                    r_beh.to_csv(right_epoch_behav_path)
-                    print("SAVED:", right_epoch_path)
-                    print("SAVED:", right_epoch_behav_path)
 
 
 if __name__=='__main__':

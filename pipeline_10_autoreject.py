@@ -23,7 +23,7 @@ def run(index, json_file):
     proc_path = op.join(der_path, "processed")
     files.make_folder(proc_path)
 
-    subjects = files.get_folders_files(proc_path)[0]
+    subjects = files.get_folders(proc_path,'sub-','')[2]
     subjects.sort()
     subject = subjects[index]
     subject_id = subject.split("/")[-1]
@@ -50,8 +50,6 @@ def run(index, json_file):
         epo_paths.sort()
         beh_paths = files.get_files(sess_path, "sub", "-beh.csv")[2]
         beh_paths.sort()
-        eve_paths = files.get_files(sess_path, "sub", "-eve.fif")[2]
-        eve_paths.sort()
 
         for epo in epo_paths:
             # for epo in [epo_paths[0]]:
@@ -59,10 +57,8 @@ def run(index, json_file):
             epo_type = epo.split(sep)[-1].split("-")[5]
 
             beh_path = [i for i in beh_paths if numero + '-' + epo_type + '-beh' in i][0]
-            eve_path = [i for i in eve_paths if numero + '-eve' in i][0]
 
             print("BEH:", beh_path.split(sep)[-1])
-            print("EVE:", eve_path.split(sep)[-1])
             print("EPO:", epo.split(sep)[-1])
 
             epochs = read_epochs(epo, verbose=False, preload=True)
@@ -145,7 +141,7 @@ if __name__=='__main__':
         json_file = sys.argv[2]
         print("USING:", json_file)
     except:
-        json_file = "settings.json"
+        json_file = "../settings.json"
         print("USING:", json_file)
 
     run(index, json_file)
