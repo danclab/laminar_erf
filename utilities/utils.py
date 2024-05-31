@@ -1,25 +1,14 @@
+import json
 import os
+import os.path as op
 import nibabel as nib
 import numpy as np
 import pandas as pd
 from scipy import interpolate
-import scipy
 from scipy.spatial import KDTree
 from lameg.surf import compute_mesh_adjacency, compute_geodesic_distances
 from scipy.sparse.csgraph import connected_components
 from scipy.signal import correlate
-
-subjects=['sub-001','sub-002','sub-003','sub-004','sub-005','sub-006','sub-007','sub-008']
-sessions=[
-    ['ses-01'],
-    ['ses-03','ses-04','ses-05','ses-06'],
-    ['ses-01','ses-02','ses-03','ses-04'],
-    ['ses-01','ses-02','ses-03','ses-04'],
-    ['ses-01','ses-02','ses-03','ses-04'],
-    ['ses-03'],
-    ['ses-01','ses-02','ses-03','ses-04'],
-    ['ses-03','ses-04','ses-05'],
-]
 
 def align_signals(signal, reference_signal):
     """
@@ -165,8 +154,13 @@ def parallel_compute_distances(vtx_index, distance_matrix, vtx_to_plot):
     return all_dist[vtx_to_plot]
 
 
-def get_fiducial_coords(subj_id):
-    df = pd.read_csv('/home/common/bonaiuto/cued_action_meg/raw/participants.tsv', sep='\t')
+def get_fiducial_coords(subj_id, json_file):
+    with open(json_file) as pipeline_file:
+        parameters = json.load(pipeline_file)
+
+    path = parameters["dataset_path"]
+    df = pd.read_csv(op.join(path, 'raw/participants.tsv'), sep='\t')
+
     # Fetch the row corresponding to the given subj_id
     row = df.loc[df['subj_id'] == subj_id]
     # Parse the 'nas', 'lpa', and 'rpa' columns into lists
