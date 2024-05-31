@@ -14,9 +14,7 @@ def run(index, json_file):
     path = parameters["dataset_path"]
 
     der_path = op.join(path, "derivatives")
-    files.make_folder(der_path)
     proc_path = op.join(der_path, "processed")
-    files.make_folder(proc_path)
 
     subjects = files.get_folders(proc_path, 'sub-', '')[2]
     subjects.sort()
