@@ -17,6 +17,7 @@ def run(subj_idx, ses_idx, epo_type, epo, json_file):
         parameters = json.load(pipeline_file)
 
     path = parameters["dataset_path"]
+    out_path = parameters["output_path"]
     der_path = op.join(path, "derivatives")
     proc_path = op.join(der_path, "processed")
 
@@ -67,27 +68,43 @@ def run(subj_idx, ses_idx, epo_type, epo, json_file):
         'link_vector.fixed'
     )
 
-    out_dir = os.path.join(
-        './output/',
+    ses_out_path = os.path.join(
+        out_path,
         subject_id,
         session_id
     )
-    out_fname = os.path.join(out_dir, f'multilaminar_results_{epo_type}-epo.npz')
-    data_file = os.path.join(out_dir,
-        f'pmcspm_converted_autoreject-{subject_id}-{session_id}-{epo_type}-epo.mat'
+    out_fname = os.path.join(ses_out_path, f'multilaminar_results_{epo_type}-epo.npz')
+    data_file = os.path.join(ses_path,
+        f'spm/pmcspm_converted_autoreject-{subject_id}-{session_id}-{epo_type}-epo.mat'
     )
-    fname = os.path.join(out_dir, f'localizer_results_{epo_type}-epo.npz')
+    fname = os.path.join(ses_out_path, f'localizer_results_{epo_type}-epo.npz')
     if len(epo):
-        out_fname = os.path.join(out_dir, f'multilaminar_results_{epo}_{epo_type}-epo.npz')
-        data_file = os.path.join(out_dir,
-            f'{epo}_pmcspm_converted_autoreject-{subject_id}-{session_id}-{epo_type}-epo.mat'
+        out_fname = os.path.join(ses_out_path, f'multilaminar_results_{epo}_{epo_type}-epo.npz')
+        data_file = os.path.join(ses_path,
+            f'spm/{epo}_pmcspm_converted_autoreject-{subject_id}-{session_id}-{epo_type}-epo.mat'
         )
-        fname = os.path.join(out_dir, f'localizer_results_{epo}_{epo_type}-epo.npz')
+        fname = os.path.join(ses_out_path, f'localizer_results_{epo}_{epo_type}-epo.npz')
 
 
     if os.path.exists(fname) and not os.path.exists(out_fname):
         with np.load(fname) as data:
             cluster_vtx = data['cluster_vtx']
+
+        # Extract base name and path of data file
+        data_path, data_file_name = os.path.split(data_file)
+        data_base = os.path.splitext(data_file_name)[0]
+
+        shutil.copy(
+            os.path.join(data_path, f'{data_base}.mat'),
+            os.path.join(ses_out_path, f'{data_base}.mat')
+        )
+        shutil.copy(
+            os.path.join(data_path, f'{data_base}.dat'),
+            os.path.join(ses_out_path, f'{data_base}.dat')
+        )
+
+        base_fname = os.path.join(ses_out_path, f'{data_base}.mat')
+
         cluster_layer_fs = []
         for c_idx in range(len(cluster_vtx)):
             subj_vtx = cluster_vtx[c_idx]
@@ -101,7 +118,7 @@ def run(subj_idx, ses_idx, epo_type, epo, json_file):
                     rpa,
                     mri_fname,
                     layer_fnames,
-                    data_file,
+                    base_fname,
                     patch_size=patch_size,
                     n_temp_modes=sliding_n_temp_modes,
                     win_size=win_size,

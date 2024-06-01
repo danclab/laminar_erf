@@ -6,7 +6,7 @@ import sys
 
 import numpy as np
 
-from lameg.laminar import sliding_window_model_comparison
+from lameg.invert import coregister, invert_ebb, invert_msp, load_source_time_series
 from lameg.util import get_surface_names, matlab_context
 
 from utilities import files
@@ -19,6 +19,7 @@ def run(subj_idx, ses_idx, epo_type, epo, condition, json_file):
         parameters = json.load(pipeline_file)
 
     path = parameters["dataset_path"]
+    out_path = parameters["output_path"]
     der_path = op.join(path, "derivatives")
     proc_path = op.join(der_path, "processed")
 
@@ -39,9 +40,6 @@ def run(subj_idx, ses_idx, epo_type, epo, condition, json_file):
 
     lpa, nas, rpa = get_fiducial_coords(subject_id, json_file)
 
-    # Patch size to use for inversion
-    patch_size = 5
-
     # Native space MRI to use for coregistration
     mri_fname = os.path.join(
         sub_path,
@@ -56,24 +54,24 @@ def run(subj_idx, ses_idx, epo_type, epo, condition, json_file):
 
     n_layers = 11
 
-    out_dir = os.path.join(
-        './output/',
+    ses_out_path = os.path.join(
+        out_path,
         subject_id,
         session_id
     )
-    out_fname = os.path.join(out_dir, f'localizer_results_{epo_type}-epo_{condition}.npz')
+    out_fname = os.path.join(ses_out_path, f'localizer_results_{epo_type}-epo_{condition}.npz')
     data_file = os.path.join(
         ses_path,
         f'spm/pm{condition}_cspm_converted_autoreject-{subject_id}-{session_id}-{epo_type}-epo.mat'
     )
-    fname = os.path.join(out_dir, f'localizer_results_{epo_type}-epo.npz')
+    fname = os.path.join(ses_out_path, f'localizer_results_{epo_type}-epo.npz')
     if len(epo):
-        out_fname = os.path.join(out_dir, f'localizer_results_{epo}_{epo_type}-epo_{condition}.npz')
+        out_fname = os.path.join(ses_out_path, f'localizer_results_{epo}_{epo_type}-epo_{condition}.npz')
         data_file = os.path.join(
             ses_path,
-            f'{epo}_pm{condition}_cspm_converted_autoreject-{subject_id}-{session_id}-{epo_type}-epo.mat'
+            f'spm/{epo}_pm{condition}_cspm_converted_autoreject-{subject_id}-{session_id}-{epo_type}-epo.mat'
         )
-        fname = os.path.join(out_dir, f'localizer_results_{epo}_{epo_type}-epo.npz')
+        fname = os.path.join(ses_out_path, f'localizer_results_{epo}_{epo_type}-epo.npz')
 
 
     if os.path.exists(fname) and not os.path.exists(out_fname):
@@ -86,18 +84,23 @@ def run(subj_idx, ses_idx, epo_type, epo, condition, json_file):
 
         shutil.copy(
             os.path.join(data_path, f'{data_base}.mat'),
-            os.path.join(out_dir, f'{data_base}.mat')
+            os.path.join(ses_out_path, f'{data_base}.mat')
         )
         shutil.copy(
             os.path.join(data_path, f'{data_base}.dat'),
-            os.path.join(out_dir, f'{data_base}.dat')
+            os.path.join(ses_out_path, f'{data_base}.dat')
         )
 
-        base_fname = os.path.join(out_dir, f'{data_base}.mat')
+        base_fname = os.path.join(ses_out_path, f'{data_base}.mat')
 
         cluster_ts = []
         for c_idx in range(len(cluster_vtx)):
             subj_vtx = cluster_vtx[c_idx]
+
+            # Patch size to use for inversion
+            patch_size = 5
+            # Number of temporal modes to use for EBB inversion
+            n_temp_modes = 4
 
             with matlab_context() as eng:
                 # Coregister data to multilayer mesh
@@ -140,47 +143,73 @@ def run(subj_idx, ses_idx, epo_type, epo, condition, json_file):
             ts_time = data['ts_time']
         )
 
-# conditions = ['congruent', 'incongruent', 'coherence-low', 'coherence-med', 'coherence-high']
 
 if __name__=='__main__':
-    # parsing command line arguments
-    try:
-        index = int(sys.argv[1])
-    except:
-        print("incorrect subject index")
-        sys.exit()
+    # # parsing command line arguments
+    # try:
+    #     index = int(sys.argv[1])
+    # except:
+    #     print("incorrect subject index")
+    #     sys.exit()
+    #
+    # try:
+    #     session_index = int(sys.argv[2])
+    # except:
+    #     print("incorrect session index")
+    #     sys.exit()
+    #
+    # try:
+    #     epoch_type = sys.argv[3]
+    # except:
+    #     print("incorrect epoch type")
+    #     sys.exit()
+    #
+    # try:
+    #     epoch = sys.argv[4]
+    # except:
+    #     print("incorrect epoch")
+    #     sys.exit()
+    #
+    # try:
+    #     condition = sys.argv[5]
+    # except:
+    #     print("incorrect condition")
+    #     sys.exit()
+    #
+    # try:
+    #     json_file = sys.argv[6]
+    #     print("USING:", json_file)
+    # except:
+    #     json_file = "settings.json"
+    #     print("USING:", json_file)
+    #
+    #
+    # run(index, session_index, epoch_type, epoch, condition, json_file)
 
-    try:
-        session_index = int(sys.argv[2])
-    except:
-        print("incorrect session index")
-        sys.exit()
+    epoch_type='visual'
+    epoch='rdk'
+    conditions = ['congruent', 'incongruent', 'coherence-low', 'coherence-med', 'coherence-high']
 
-    try:
-        epoch_type = sys.argv[3]
-    except:
-        print("incorrect epoch type")
-        sys.exit()
+    json_file='settings.json'
+    with open(json_file) as pipeline_file:
+        parameters = json.load(pipeline_file)
 
-    try:
-        epoch = sys.argv[4]
-    except:
-        print("incorrect epoch")
-        sys.exit()
+    path = parameters["dataset_path"]
+    der_path = op.join(path, "derivatives")
+    files.make_folder(der_path)
+    proc_path = op.join(der_path, "processed")
+    files.make_folder(proc_path)
 
-    try:
-        condition = sys.argv[5]
-    except:
-        print("incorrect condition")
-        sys.exit()
+    subjects = files.get_folders(proc_path, 'sub-', '')[2]
+    subjects.sort()
 
-    try:
-        json_file = sys.argv[6]
-        print("USING:", json_file)
-    except:
-        json_file = "settings.json"
-        print("USING:", json_file)
+    for s_idx in range(len(subjects)):
+        subject=subjects[s_idx]
 
+        sessions = files.get_folders(subject, 'ses', '')[2]
+        sessions.sort()
 
-    run(index, session_index, epoch_type, epoch, condition, json_file)
+        for ses_idx in range(len(sessions)):
+            for condition in conditions:
+                run(s_idx, ses_idx, epoch_type, epoch, condition, json_file)
 

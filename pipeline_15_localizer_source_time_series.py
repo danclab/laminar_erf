@@ -19,6 +19,7 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
         parameters = json.load(pipeline_file)
 
     path = parameters["dataset_path"]
+    out_path = parameters["output_path"]
     der_path = op.join(path, "derivatives")
     proc_path = op.join(der_path, "processed")
 
@@ -76,26 +77,26 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
     data_base = os.path.splitext(data_file_name)[0]
 
     _ = make_directory(
-        './output/',
+        out_path,
         [subject_id, session_id],
         check=False
     )
-    out_dir = os.path.join(
-        './output/',
+    ses_out_path = os.path.join(
+        out_path,
         subject_id,
         session_id
     )
 
     shutil.copy(
         os.path.join(data_path, f'{data_base}.mat'),
-        os.path.join(out_dir, f'{data_base}.mat')
+        os.path.join(ses_out_path, f'{data_base}.mat')
     )
     shutil.copy(
         os.path.join(data_path, f'{data_base}.dat'),
-        os.path.join(out_dir, f'{data_base}.dat')
+        os.path.join(ses_out_path, f'{data_base}.dat')
     )
 
-    base_fname = os.path.join(out_dir, f'{data_base}.mat')
+    base_fname = os.path.join(ses_out_path, f'{data_base}.mat')
 
     # Patch size to use for inversion
     patch_size = 5
@@ -196,9 +197,9 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
     cluster_coord = np.array(cluster_coord)
     cluster_ts = np.array(cluster_ts)
 
-    out_fname = os.path.join(out_dir, f'localizer_results_{epo_type}-epo.npz')
+    out_fname = os.path.join(ses_out_path, f'localizer_results_{epo_type}-epo.npz')
     if len(epo):
-        out_fname = os.path.join(out_dir, f'localizer_results_{epo}_{epo_type}-epo.npz')
+        out_fname = os.path.join(ses_out_path, f'localizer_results_{epo}_{epo_type}-epo.npz')
     np.savez(
         out_fname,
         cluster_vtx=cluster_vtx,

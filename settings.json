@@ -1,5 +1,6 @@
 {
-    "dataset_path": "/media/bonaiuto/TOSHIBA EXT/cued_action_meg/",
+    "dataset_path": "/home/common/bonaiuto/cued_action_meg/",
+    "output_path": "/home/laminar_erf/output",
     "downsample_dataset": 600,
     "hi_pass_filter": 120
 }
