@@ -112,7 +112,8 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
             mri_fname,
             multilayer_mesh_fname,
             base_fname,
-            mat_eng=eng
+            mat_eng=eng,
+            viz=False
         )
 
         [_, _, MU] = invert_ebb(
@@ -123,7 +124,8 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
             patch_size=patch_size,
             n_temp_modes=n_temp_modes,
             return_mu_matrix=True,
-            mat_eng=eng
+            mat_eng=eng,
+            viz=False
         )
 
         layer_vertices = np.arange(verts_per_surf)
@@ -168,7 +170,8 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
                 mri_fname,
                 multilayer_mesh_fname,
                 base_fname,
-                mat_eng=eng
+                mat_eng=eng,
+                viz=False
             )
 
             [_, _, MU] = invert_msp(
@@ -179,7 +182,8 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
                 patch_size=patch_size,
                 n_temp_modes=n_temp_modes,
                 return_mu_matrix=True,
-                mat_eng=eng
+                mat_eng=eng,
+                viz=False
             )
 
             prior_layer_ts, time = load_source_time_series(

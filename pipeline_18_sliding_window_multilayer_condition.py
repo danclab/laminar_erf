@@ -127,7 +127,8 @@ def run(subj_idx, ses_idx, epo_type, epo, condition, json_file):
                     n_temp_modes=sliding_n_temp_modes,
                     win_size=win_size,
                     win_overlap=win_overlap,
-                    mat_eng=eng
+                    mat_eng=eng,
+                    viz=False
                 )
 
             woi_time = np.array([np.mean(x) for x in wois])
