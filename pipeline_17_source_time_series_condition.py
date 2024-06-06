@@ -6,8 +6,8 @@ import sys
 
 import numpy as np
 
-from lameg.invert import coregister, invert_ebb, invert_msp, load_source_time_series
-from lameg.util import get_surface_names, matlab_context
+from lameg.invert import coregister, invert_msp, load_source_time_series
+from lameg.util import matlab_context
 
 from utilities import files
 from utilities.utils import get_fiducial_coords
@@ -111,7 +111,8 @@ def run(subj_idx, ses_idx, epo_type, epo, condition, json_file):
                     mri_fname,
                     multilayer_mesh_fname,
                     base_fname,
-                    mat_eng=eng
+                    mat_eng=eng,
+                    viz=False
                 )
 
                 [_, _, MU] = invert_msp(
@@ -122,7 +123,8 @@ def run(subj_idx, ses_idx, epo_type, epo, condition, json_file):
                     patch_size=patch_size,
                     n_temp_modes=n_temp_modes,
                     return_mu_matrix=True,
-                    mat_eng=eng
+                    mat_eng=eng,
+                    viz=False
                 )
 
                 prior_layer_ts, time = load_source_time_series(
@@ -145,71 +147,43 @@ def run(subj_idx, ses_idx, epo_type, epo, condition, json_file):
 
 
 if __name__=='__main__':
-    # # parsing command line arguments
-    # try:
-    #     index = int(sys.argv[1])
-    # except:
-    #     print("incorrect subject index")
-    #     sys.exit()
-    #
-    # try:
-    #     session_index = int(sys.argv[2])
-    # except:
-    #     print("incorrect session index")
-    #     sys.exit()
-    #
-    # try:
-    #     epoch_type = sys.argv[3]
-    # except:
-    #     print("incorrect epoch type")
-    #     sys.exit()
-    #
-    # try:
-    #     epoch = sys.argv[4]
-    # except:
-    #     print("incorrect epoch")
-    #     sys.exit()
-    #
-    # try:
-    #     condition = sys.argv[5]
-    # except:
-    #     print("incorrect condition")
-    #     sys.exit()
-    #
-    # try:
-    #     json_file = sys.argv[6]
-    #     print("USING:", json_file)
-    # except:
-    #     json_file = "settings.json"
-    #     print("USING:", json_file)
-    #
-    #
-    # run(index, session_index, epoch_type, epoch, condition, json_file)
+    # parsing command line arguments
+    try:
+        index = int(sys.argv[1])
+    except:
+        print("incorrect subject index")
+        sys.exit()
 
-    epoch_type='visual'
-    epoch='rdk'
-    conditions = ['congruent', 'incongruent', 'coherence-low', 'coherence-med', 'coherence-high']
+    try:
+        session_index = int(sys.argv[2])
+    except:
+        print("incorrect session index")
+        sys.exit()
 
-    json_file='settings.json'
-    with open(json_file) as pipeline_file:
-        parameters = json.load(pipeline_file)
+    try:
+        epoch_type = sys.argv[3]
+    except:
+        print("incorrect epoch type")
+        sys.exit()
 
-    path = parameters["dataset_path"]
-    der_path = op.join(path, "derivatives")
-    files.make_folder(der_path)
-    proc_path = op.join(der_path, "processed")
-    files.make_folder(proc_path)
+    try:
+        epoch = sys.argv[4]
+    except:
+        print("incorrect epoch")
+        sys.exit()
 
-    subjects = files.get_folders(proc_path, 'sub-', '')[2]
-    subjects.sort()
+    try:
+        condition = sys.argv[5]
+    except:
+        print("incorrect condition")
+        sys.exit()
 
-    for s_idx in range(len(subjects)):
-        subject=subjects[s_idx]
+    try:
+        json_file = sys.argv[6]
+        print("USING:", json_file)
+    except:
+        json_file = "settings.json"
+        print("USING:", json_file)
 
-        sessions = files.get_folders(subject, 'ses', '')[2]
-        sessions.sort()
 
-        for ses_idx in range(len(sessions)):
-            for condition in conditions:
-                run(s_idx, ses_idx, epoch_type, epoch, condition, json_file)
-
+    run(index, session_index, epoch_type, epoch, condition, json_file)
