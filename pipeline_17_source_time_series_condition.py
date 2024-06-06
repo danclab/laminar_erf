@@ -65,7 +65,7 @@ def run(subj_idx, ses_idx, epo_type, epo, condition, json_file):
         f'spm/pm{condition}_cspm_converted_autoreject-{subject_id}-{session_id}-{epo_type}-epo.mat'
     )
     fname = os.path.join(ses_out_path, f'localizer_results_{epo_type}-epo.npz')
-    if len(epo):
+    if epo_type=='visual':
         out_fname = os.path.join(ses_out_path, f'localizer_results_{epo}_{epo_type}-epo_{condition}.npz')
         data_file = os.path.join(
             ses_path,

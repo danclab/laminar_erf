@@ -79,7 +79,7 @@ def run(subj_idx, ses_idx, epo_type, epo, json_file):
         f'spm/pmcspm_converted_autoreject-{subject_id}-{session_id}-{epo_type}-epo.mat'
     )
     fname = os.path.join(ses_out_path, f'localizer_results_{epo_type}-epo.npz')
-    if len(epo):
+    if epo_type=='visual':
         out_fname = os.path.join(ses_out_path, f'multilaminar_results_{epo}_{epo_type}-epo.npz')
         data_file = os.path.join(ses_path,
             f'spm/{epo}_pmcspm_converted_autoreject-{subject_id}-{session_id}-{epo_type}-epo.mat'

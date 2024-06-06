@@ -44,7 +44,7 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
         ses_path,
         f'spm/pmcspm_converted_autoreject-{subject_id}-{session_id}-{epo_type}-epo.mat'
     )
-    if len(epo):
+    if epo_type=='visual':
         data_file = os.path.join(
             ses_path,
             f'spm/{epo}_pmcspm_converted_autoreject-{subject_id}-{session_id}-{epo_type}-epo.mat'
@@ -202,7 +202,7 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
     cluster_ts = np.array(cluster_ts)
 
     out_fname = os.path.join(ses_out_path, f'localizer_results_{epo_type}-epo.npz')
-    if len(epo):
+    if epo_type=='visual':
         out_fname = os.path.join(ses_out_path, f'localizer_results_{epo}_{epo_type}-epo.npz')
     np.savez(
         out_fname,
