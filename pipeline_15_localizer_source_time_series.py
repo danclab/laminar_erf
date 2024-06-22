@@ -7,7 +7,7 @@ import sys
 import numpy as np
 import nibabel as nib
 from lameg.invert import coregister, invert_ebb, invert_msp, load_source_time_series
-from lameg.util import matlab_context, make_directory
+from lameg.util import spm_context, make_directory
 
 from utilities import files
 from utilities.utils import get_fiducial_coords, get_roi_idx, find_clusters
@@ -103,7 +103,7 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
     # Number of temporal modes to use for EBB inversion
     n_temp_modes = 4
 
-    with matlab_context() as eng:
+    with spm_context() as spm:
         # Coregister data to multilayer mesh
         coregister(
             nas,
@@ -112,7 +112,7 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
             mri_fname,
             multilayer_mesh_fname,
             base_fname,
-            mat_eng=eng,
+            spm_instance=spm,
             viz=False
         )
 
@@ -124,16 +124,16 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
             patch_size=patch_size,
             n_temp_modes=n_temp_modes,
             return_mu_matrix=True,
-            mat_eng=eng,
+            spm_instance=spm,
             viz=False
         )
 
         layer_vertices = np.arange(verts_per_surf)
-        all_layer_ts, time = load_source_time_series(
+        all_layer_ts, time, _ = load_source_time_series(
             base_fname,
             mu_matrix=MU,
             vertices=layer_vertices,
-            mat_eng=eng
+            spm_instance=spm
         )
 
     roi_idx = get_roi_idx(subject_id, surf_dir, roi_hemi, roi_regions, ds_pial)
@@ -152,16 +152,16 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
     cluster_coord = []
     cluster_ts = []
 
-    for c_idx in range(len(clusters)):
-        cluster = clusters[c_idx]
+    with spm_context() as spm:
+        for c_idx in range(len(clusters)):
+            cluster = clusters[c_idx]
 
-        norm_cluster_max = m_layer_max[cluster] / np.max(m_layer_max[cluster])
-        max_c_idx = np.argmax(norm_cluster_max)
-        max_v_idx = cluster[max_c_idx]
+            norm_cluster_max = m_layer_max[cluster] / np.max(m_layer_max[cluster])
+            max_c_idx = np.argmax(norm_cluster_max)
+            max_v_idx = cluster[max_c_idx]
 
-        max_coord = ds_mid.darrays[0].data[max_v_idx, :]
+            max_coord = ds_mid.darrays[0].data[max_v_idx, :]
 
-        with matlab_context() as eng:
             # Coregister data to multilayer mesh
             coregister(
                 nas,
@@ -170,7 +170,7 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
                 mri_fname,
                 multilayer_mesh_fname,
                 base_fname,
-                mat_eng=eng,
+                spm_instance=spm,
                 viz=False
             )
 
@@ -182,20 +182,20 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
                 patch_size=patch_size,
                 n_temp_modes=n_temp_modes,
                 return_mu_matrix=True,
-                mat_eng=eng,
+                spm_instance=spm,
                 viz=False
             )
 
-            prior_layer_ts, time = load_source_time_series(
+            prior_layer_ts, time, _ = load_source_time_series(
                 base_fname,
                 mu_matrix=MU,
                 vertices=[max_v_idx],
-                mat_eng=eng
+                spm_instance=spm
             )
 
-        cluster_vtx.append(max_v_idx)
-        cluster_coord.append(max_coord)
-        cluster_ts.append(prior_layer_ts)
+            cluster_vtx.append(max_v_idx)
+            cluster_coord.append(max_coord)
+            cluster_ts.append(prior_layer_ts)
 
     cluster_vtx = np.array(cluster_vtx)
     cluster_coord = np.array(cluster_coord)

@@ -7,7 +7,7 @@ import sys
 import numpy as np
 
 from lameg.invert import coregister, invert_msp, load_source_time_series
-from lameg.util import matlab_context
+from lameg.util import spm_context
 
 from utilities import files
 from utilities.utils import get_fiducial_coords
@@ -94,15 +94,15 @@ def run(subj_idx, ses_idx, epo_type, epo, condition, json_file):
         base_fname = os.path.join(ses_out_path, f'{data_base}.mat')
 
         cluster_ts = []
-        for c_idx in range(len(cluster_vtx)):
-            subj_vtx = cluster_vtx[c_idx]
+        with spm_context() as spm:
+            for c_idx in range(len(cluster_vtx)):
+                subj_vtx = cluster_vtx[c_idx]
 
-            # Patch size to use for inversion
-            patch_size = 5
-            # Number of temporal modes to use for EBB inversion
-            n_temp_modes = 4
+                # Patch size to use for inversion
+                patch_size = 5
+                # Number of temporal modes to use for EBB inversion
+                n_temp_modes = 4
 
-            with matlab_context() as eng:
                 # Coregister data to multilayer mesh
                 coregister(
                     nas,
@@ -111,7 +111,7 @@ def run(subj_idx, ses_idx, epo_type, epo, condition, json_file):
                     mri_fname,
                     multilayer_mesh_fname,
                     base_fname,
-                    mat_eng=eng,
+                    spm_instance=spm,
                     viz=False
                 )
 
@@ -123,17 +123,17 @@ def run(subj_idx, ses_idx, epo_type, epo, condition, json_file):
                     patch_size=patch_size,
                     n_temp_modes=n_temp_modes,
                     return_mu_matrix=True,
-                    mat_eng=eng,
+                    spm_instance=spm,
                     viz=False
                 )
 
-                prior_layer_ts, time = load_source_time_series(
+                prior_layer_ts, time, _ = load_source_time_series(
                     base_fname,
                     mu_matrix=MU,
                     vertices=[subj_vtx],
-                    mat_eng=eng
+                    spm_instance=spm
                 )
-            cluster_ts.append(prior_layer_ts)
+                cluster_ts.append(prior_layer_ts)
 
         cluster_ts = np.array(cluster_ts)
 

@@ -7,7 +7,7 @@ import sys
 import numpy as np
 
 from lameg.laminar import sliding_window_model_comparison
-from lameg.util import get_surface_names, matlab_context
+from lameg.util import get_surface_names, spm_context
 
 from utilities import files
 from utilities.utils import get_fiducial_coords
@@ -110,10 +110,11 @@ def run(subj_idx, ses_idx, epo_type, epo, condition, json_file):
         base_fname = os.path.join(ses_out_path, f'{data_base}.mat')
 
         cluster_layer_fs = []
-        for c_idx in range(len(cluster_vtx)):
-            subj_vtx = cluster_vtx[c_idx]
 
-            with matlab_context() as eng:
+        with spm_context() as spm:
+            for c_idx in range(len(cluster_vtx)):
+                subj_vtx = cluster_vtx[c_idx]
+
                 # Run sliding time window model comparison
                 [Fs, wois] = sliding_window_model_comparison(
                     subj_vtx,
@@ -127,12 +128,12 @@ def run(subj_idx, ses_idx, epo_type, epo, condition, json_file):
                     n_temp_modes=sliding_n_temp_modes,
                     win_size=win_size,
                     win_overlap=win_overlap,
-                    mat_eng=eng,
+                    spm_instance=spm,
                     viz=False
                 )
 
-            woi_time = np.array([np.mean(x) for x in wois])
-            cluster_layer_fs.append(Fs)
+                woi_time = np.array([np.mean(x) for x in wois])
+                cluster_layer_fs.append(Fs)
         cluster_layer_fs = np.array(cluster_layer_fs)
         np.savez(
             out_fname,
