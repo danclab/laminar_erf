@@ -12,7 +12,7 @@ for s=3:length(subj_dirs)
     ses_dirs=dir(subject_dir);
     for se=3:length(ses_dirs)
         session=ses_dirs(se).name;
-        if length(strfind(session,'ses'))
+        if length(strfind(session,'ses-'))
             session_dir=fullfile(subject_dir, session);
             disp(session_dir);
             
@@ -59,7 +59,36 @@ for s=3:length(subj_dirs)
             Dhigh = subset_trials(D, high_file, high_trials);
             
             
-            condition_files={cong_file, incong_file, low_file, med_file, high_file};
+            % Congruent coherence
+            low_trials=find(strcmp(ses_congruence,'congruent') & strcmp(ses_coherence,'low'));
+            med_trials=find(strcmp(ses_congruence,'congruent') & strcmp(ses_coherence,'med'));
+            high_trials=find(strcmp(ses_congruence,'congruent') & strcmp(ses_coherence,'high'));
+            
+            cong_low_file=fullfile(spm_dir, sprintf('congruent_coherence-low_cspm_converted_autoreject-%s-%s-motor-epo.mat', subject, session));
+            Dconglow = subset_trials(D, cong_low_file, low_trials);
+            
+            cong_med_file=fullfile(spm_dir, sprintf('congruent_coherence-med_cspm_converted_autoreject-%s-%s-motor-epo.mat', subject, session));
+            Dcongmed = subset_trials(D, cong_med_file, med_trials);
+            
+            cong_high_file=fullfile(spm_dir, sprintf('congruent_coherence-high_cspm_converted_autoreject-%s-%s-motor-epo.mat', subject, session));
+            Dconghigh = subset_trials(D, cong_high_file, high_trials);
+            
+            % Incongruent coherence
+            low_trials=find(strcmp(ses_congruence,'incongruent') & strcmp(ses_coherence,'low'));
+            med_trials=find(strcmp(ses_congruence,'incongruent') & strcmp(ses_coherence,'med'));
+            high_trials=find(strcmp(ses_congruence,'incongruent') & strcmp(ses_coherence,'high'));
+            
+            incong_low_file=fullfile(spm_dir, sprintf('incongruent_coherence-low_cspm_converted_autoreject-%s-%s-motor-epo.mat', subject, session));
+            Dinconglow = subset_trials(D, incong_low_file, low_trials);
+            
+            incong_med_file=fullfile(spm_dir, sprintf('incongruent_coherence-med_cspm_converted_autoreject-%s-%s-motor-epo.mat', subject, session));
+            Dincongmed = subset_trials(D, incong_med_file, med_trials);
+            
+            incong_high_file=fullfile(spm_dir, sprintf('incongruent_coherence-high_cspm_converted_autoreject-%s-%s-motor-epo.mat', subject, session));
+            Dinconghigh = subset_trials(D, incong_high_file, high_trials);
+            
+            
+            condition_files={cong_file, incong_file, low_file, med_file, high_file, cong_low_file, cong_med_file, cong_high_file, incong_low_file, incong_med_file, incong_high_file};
             
             for f=1:length(condition_files)
                 spm_jobman('initcfg');
