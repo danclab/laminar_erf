@@ -67,11 +67,6 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
     n_layers = 11
     verts_per_surf = int(mesh.darrays[0].data.shape[0] / n_layers)
 
-    # Get name of each mesh that makes up the layers of the multilayer mesh - these will be used for the source
-    # reconstruction
-    ds_pial = nib.load(os.path.join(surf_dir, 'pial.ds.gii'))
-    ds_mid = nib.load(os.path.join(surf_dir, '0.300.ds.link_vector.fixed.gii'))
-
     # Extract base name and path of data file
     data_path, data_file_name = os.path.split(data_file)
     data_base = os.path.splitext(data_file_name)[0]
@@ -95,6 +90,28 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
         os.path.join(data_path, f'{data_base}.dat'),
         os.path.join(ses_out_path, f'{data_base}.dat')
     )
+
+    shutil.copy(
+        multilayer_mesh_fname,
+        os.path.join(ses_out_path, 'multilayer.11.ds.link_vector.fixed.gii')
+    )
+    multilayer_mesh_fname=os.path.join(ses_out_path, 'multilayer.11.ds.link_vector.fixed.gii')
+    shutil.copy(
+        os.path.join(surf_dir, 'FWHM5.00_multilayer.11.ds.link_vector.fixed.mat'),
+        os.path.join(ses_out_path, 'FWHM5.00_multilayer.11.ds.link_vector.fixed.mat')
+    )
+
+    shutil.copy(
+        os.path.join(surf_dir, 'pial.ds.gii'),
+        os.path.join(ses_out_path, 'pial.ds.gii')
+    )
+    shutil.copy(
+        os.path.join(surf_dir, 'pial.ds.gii'),
+        os.path.join(ses_out_path, '0.300.ds.link_vector.fixed.gii')
+    )
+
+    ds_pial = nib.load(os.path.join(ses_out_path, 'pial.ds.gii'))
+    ds_mid = nib.load(os.path.join(ses_out_path, '0.300.ds.link_vector.fixed.gii'))
 
     base_fname = os.path.join(ses_out_path, f'{data_base}.mat')
 
@@ -189,8 +206,7 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
             prior_layer_ts, time, _ = load_source_time_series(
                 base_fname,
                 mu_matrix=MU,
-                vertices=[max_v_idx],
-                spm_instance=spm
+                vertices=[max_v_idx]
             )
 
             cluster_vtx.append(max_v_idx)
