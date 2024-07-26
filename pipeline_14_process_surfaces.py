@@ -25,9 +25,10 @@ def run(index, json_file):
     subj_output_path=os.path.join(proc_path, subject, 'surf')
     if not os.path.exists(subj_output_path):
         os.mkdir(subj_output_path)
-        # Create an 11-layer surface
+
+    # Create an 11-layer surface
     postprocess_freesurfer_surfaces(
-        subject,
+        subject_id,
         subj_output_path,
         'multilayer.11.ds.link_vector.fixed.gii',
         n_surfaces=11,
@@ -36,19 +37,28 @@ def run(index, json_file):
         remove_deep=True
     )
 
+    # Create an 15-layer surface
+    postprocess_freesurfer_surfaces(
+        subject_id,
+        subj_output_path,
+        'multilayer.15.ds.link_vector.fixed.gii',
+        n_surfaces=15,
+        ds_factor=0.1,
+        orientation='link_vector',
+        remove_deep=True
+    )
+
+    # Create a 32-layer surface
+    postprocess_freesurfer_surfaces(
+        subject_id,
+        subj_output_path,
+        'multilayer.32.ds.link_vector.fixed.gii',
+        n_surfaces=32,
+        ds_factor=0.1,
+        orientation='link_vector',
+        remove_deep=True
+    )
+
 if __name__=='__main__':
-    # parsing command line arguments
-    try:
-        index = int(sys.argv[1])
-    except:
-        print("incorrect arguments")
-        sys.exit()
-
-    try:
-        json_file = sys.argv[2]
-        print("USING:", json_file)
-    except:
-        json_file = "settings.json"
-        print("USING:", json_file)
-
-    run(index, json_file)
+    for index in range(8):
+        run(index, 'settings.json')
