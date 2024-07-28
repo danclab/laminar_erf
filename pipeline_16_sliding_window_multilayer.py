@@ -10,7 +10,8 @@ from lameg.laminar import sliding_window_model_comparison
 from lameg.util import get_surface_names, spm_context
 
 from utilities import files
-from utilities.utils import get_fiducial_coords
+from utilities.utils import get_fiducial_coords, get_subject_sessions_idx
+
 
 def run(subj_idx, ses_idx, epo_type, epo, json_file):
     # opening a json file
@@ -120,12 +121,14 @@ def run(subj_idx, ses_idx, epo_type, epo, json_file):
                     mri_fname,
                     layer_fnames,
                     base_fname,
-                    patch_size=patch_size,
-                    n_temp_modes=sliding_n_temp_modes,
-                    win_size=win_size,
-                    win_overlap=win_overlap,
                     spm_instance=spm,
-                    viz=False
+                    viz=False,
+                    invert_kwargs={
+                        'patch_size': patch_size,
+                        'n_temp_modes': sliding_n_temp_modes,
+                        'win_size': win_size,
+                        'win_overlap': win_overlap
+                    }
                 )
 
                 woi_time = np.array([np.mean(x) for x in wois])
@@ -139,38 +142,38 @@ def run(subj_idx, ses_idx, epo_type, epo, json_file):
         )
 
 if __name__=='__main__':
+
+    subjects, sessions = get_subject_sessions_idx()
+    epoch_types = ['visual','visual','motor']
+    epochs = ['rdk','instr','']
+
+    all_subjects=[]
+    all_sessions=[]
+    all_epoch_types=[]
+    all_epochs=[]
+
+    for epoch_type in epoch_types:
+        for epoch in epochs:
+            for subject, session in zip(subjects, sessions):
+                all_subjects.append(subject)
+                all_sessions.append(session)
+                all_epoch_types.append(epoch_type)
+                all_epochs.append(epoch)
+
     # parsing command line arguments
     try:
         index = int(sys.argv[1])
     except:
-        print("incorrect subject index")
+        print("incorrect index")
         sys.exit()
 
     try:
-        session_index = int(sys.argv[2])
-    except:
-        print("incorrect session index")
-        sys.exit()
-
-    try:
-        epoch_type = sys.argv[3]
-    except:
-        print("incorrect epoch type")
-        sys.exit()
-
-    try:
-        epoch = sys.argv[4]
-    except:
-        print("incorrect epoch")
-        sys.exit()
-
-    try:
-        json_file = sys.argv[5]
+        json_file = sys.argv[2]
         print("USING:", json_file)
     except:
         json_file = "settings.json"
         print("USING:", json_file)
 
 
-    run(index, session_index, epoch_type, epoch, json_file)
+    run(all_subjects[index], all_sessions[index], all_epoch_types[index], all_epochs[index], json_file)
 

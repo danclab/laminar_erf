@@ -8,12 +8,14 @@ import numpy as np
 import nibabel as nib
 from lameg.invert import coregister, invert_ebb, invert_msp, load_source_time_series
 from lameg.util import spm_context, make_directory
+import spm_standalone
 
 from utilities import files
-from utilities.utils import get_fiducial_coords, get_roi_idx, find_clusters
+from utilities.utils import get_fiducial_coords, get_roi_idx, find_clusters, get_subject_sessions_idx
 
 
-def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, json_file, thresh=99.99):
+def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, json_file, thresh=99.99,
+        spm_instance=None):
     # opening a json file
     with open(json_file) as pipeline_file:
         parameters = json.load(pipeline_file)
@@ -73,8 +75,7 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
 
     _ = make_directory(
         out_path,
-        [subject_id, session_id],
-        check=False
+        [subject_id, session_id]
     )
     ses_out_path = os.path.join(
         out_path,
@@ -91,27 +92,8 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
         os.path.join(ses_out_path, f'{data_base}.dat')
     )
 
-    shutil.copy(
-        multilayer_mesh_fname,
-        os.path.join(ses_out_path, 'multilayer.11.ds.link_vector.fixed.gii')
-    )
-    multilayer_mesh_fname=os.path.join(ses_out_path, 'multilayer.11.ds.link_vector.fixed.gii')
-    shutil.copy(
-        os.path.join(surf_dir, 'FWHM5.00_multilayer.11.ds.link_vector.fixed.mat'),
-        os.path.join(ses_out_path, 'FWHM5.00_multilayer.11.ds.link_vector.fixed.mat')
-    )
-
-    shutil.copy(
-        os.path.join(surf_dir, 'pial.ds.gii'),
-        os.path.join(ses_out_path, 'pial.ds.gii')
-    )
-    shutil.copy(
-        os.path.join(surf_dir, 'pial.ds.gii'),
-        os.path.join(ses_out_path, '0.300.ds.link_vector.fixed.gii')
-    )
-
-    ds_pial = nib.load(os.path.join(ses_out_path, 'pial.ds.gii'))
-    ds_mid = nib.load(os.path.join(ses_out_path, '0.300.ds.link_vector.fixed.gii'))
+    ds_pial = nib.load(os.path.join(surf_dir, 'pial.ds.gii'))
+    ds_mid = nib.load(os.path.join(surf_dir, '0.300.ds.link_vector.fixed.gii'))
 
     base_fname = os.path.join(ses_out_path, f'{data_base}.mat')
 
@@ -120,7 +102,7 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
     # Number of temporal modes to use for EBB inversion
     n_temp_modes = 4
 
-    with spm_context() as spm:
+    with spm_context(spm_instance) as spm:
         # Coregister data to multilayer mesh
         coregister(
             nas,
@@ -149,8 +131,7 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
         all_layer_ts, time, _ = load_source_time_series(
             base_fname,
             mu_matrix=MU,
-            vertices=layer_vertices,
-            spm_instance=spm
+            vertices=layer_vertices
         )
 
     roi_idx = get_roi_idx(subject_id, surf_dir, roi_hemi, roi_regions, ds_pial)
@@ -169,7 +150,7 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
     cluster_coord = []
     cluster_ts = []
 
-    with spm_context() as spm:
+    with spm_context(spm_instance) as spm:
         for c_idx in range(len(clusters)):
             cluster = clusters[c_idx]
 
@@ -230,50 +211,32 @@ def run(subj_idx, ses_idx, epo_type, epo, localizer_woi, roi_hemi, roi_regions, 
 
 
 if __name__=='__main__':
-    # parsing command line arguments
     try:
-        index = int(sys.argv[1])
-    except:
-        print("incorrect subject index")
-        sys.exit()
-
-    try:
-        session_index = int(sys.argv[2])
-    except:
-        print("incorrect session index")
-        sys.exit()
-
-    try:
-        epoch_type = sys.argv[3]
-    except:
-        print("incorrect epoch type")
-        sys.exit()
-
-    try:
-        epoch = sys.argv[4]
-    except:
-        print("incorrect epoch")
-        sys.exit()
-
-    try:
-        json_file = sys.argv[5]
+        json_file = sys.argv[1]
         print("USING:", json_file)
     except:
         json_file = "settings.json"
         print("USING:", json_file)
 
-    if epoch_type== 'motor':
-        localizer_woi=[-125,-25]
-        roi_hemi='lh'
-        roi_regions=['precentral', 'postcentral']
-        thresh = 99.95
-    else:
-        if epoch== 'instr':
-            localizer_woi=[2550, 2650]
-        else:
-            localizer_woi=[50, 150]
-        roi_hemi=None
-        roi_regions=['pericalcarine']
-        thresh = 99.99
+    for epoch_type, epoch in zip(['visual','visual','motor'],['rdk','instr','']):
 
-    run(index, session_index, epoch_type, epoch, localizer_woi, roi_hemi, roi_regions, json_file, thresh=thresh)
+        if epoch_type== 'motor':
+            localizer_woi=[-125,-25]
+            roi_hemi='lh'
+            roi_regions=['precentral', 'postcentral']
+            thresh = 99.95
+        else:
+            if epoch== 'instr':
+                localizer_woi=[2550, 2650]
+            else:
+                localizer_woi=[50, 150]
+            roi_hemi=None
+            roi_regions=['pericalcarine']
+            thresh = 99.99
+
+        spm = spm_standalone.initialize()
+
+        subjects, sessions = get_subject_sessions_idx()
+        for subject_idx, session_idx in zip(subjects, sessions):
+            run(subject_idx, session_idx, epoch_type, epoch, localizer_woi, roi_hemi, roi_regions, json_file, thresh=thresh,
+                spm_instance=spm)
