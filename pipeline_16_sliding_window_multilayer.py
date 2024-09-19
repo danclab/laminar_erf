@@ -1,3 +1,4 @@
+import glob
 import json
 import os
 import os.path as op
@@ -7,7 +8,7 @@ import sys
 import numpy as np
 
 from lameg.laminar import sliding_window_model_comparison
-from lameg.util import get_surface_names, spm_context
+from lameg.util import spm_context
 
 from utilities import files
 from utilities.utils import get_fiducial_coords, get_subject_sessions_idx
@@ -49,11 +50,17 @@ def run(subj_idx, ses_idx, epo_type, epo, json_file):
     # Whether or not windows overlap
     win_overlap = True
 
+    tmp_dir = os.path.join(out_path, f'mlayer_{subj_idx}_{ses_idx}_{epo_type}_{epo}')
+    if not os.path.exists(tmp_dir):
+        os.mkdir(tmp_dir)
+
     # Native space MRI to use for coregistration
-    mri_fname = os.path.join(
-        sub_path,
-        't1w.nii'
-    )
+    shutil.copy(os.path.join(sub_path, 't1w.nii'),
+                os.path.join(tmp_dir, 't1w.nii'))
+    surf_files = glob.glob(os.path.join(sub_path, 't1w*.gii'))
+    for surf_file in surf_files:
+        shutil.copy(surf_file, tmp_dir)
+    mri_fname = os.path.join(tmp_dir, 't1w.nii')
 
     surf_dir = os.path.join(
         sub_path,
@@ -64,11 +71,23 @@ def run(subj_idx, ses_idx, epo_type, epo, json_file):
 
     # Get name of each mesh that makes up the layers of the multilayer mesh - these will be used for the source
     # reconstruction
-    layer_fnames = get_surface_names(
-        n_layers,
-        surf_dir,
-        'link_vector.fixed'
-    )
+    orientation_method = 'link_vector.fixed'
+    layers = np.linspace(1, 0, n_layers)
+    layer_fnames = []
+    for layer in layers:
+
+        if layer == 1:
+            name = f'pial.ds.{orientation_method}'
+        elif layer == 0:
+            name = f'white.ds.{orientation_method}'
+        else:
+            name = f'{layer:.3f}.ds.{orientation_method}'
+
+        shutil.copy(os.path.join(surf_dir, f'{name}.gii'),
+                    os.path.join(tmp_dir, f'{name}.gii'))
+        layer_fnames.append(os.path.join(tmp_dir, f'{name}.gii'))
+        shutil.copy(os.path.join(surf_dir, f'FWHM5.00_{name}.mat'),
+                    os.path.join(tmp_dir, f'FWHM5.00_{name}.mat'))
 
     ses_out_path = os.path.join(
         out_path,
@@ -86,26 +105,26 @@ def run(subj_idx, ses_idx, epo_type, epo, json_file):
             f'spm/{epo}_pmcspm_converted_autoreject-{subject_id}-{session_id}-{epo_type}-epo.mat'
         )
         fname = os.path.join(ses_out_path, f'localizer_results_{epo}_{epo_type}-epo.npz')
+    data_path, data_file_name = os.path.split(data_file)
+    data_base = os.path.splitext(data_file_name)[0]
+
+    # Copy data files to tmp directory
+    shutil.copy(
+        os.path.join(data_path, f'{data_base}.mat'),
+        os.path.join(tmp_dir, f'{data_base}.mat')
+    )
+    shutil.copy(
+        os.path.join(data_path, f'{data_base}.dat'),
+        os.path.join(tmp_dir, f'{data_base}.dat')
+    )
+
+    # Construct base file name for simulations
+    base_fname = os.path.join(tmp_dir, f'{data_base}.mat')
 
 
     if os.path.exists(fname) and not os.path.exists(out_fname):
         with np.load(fname) as data:
             cluster_vtx = data['cluster_vtx']
-
-        # Extract base name and path of data file
-        data_path, data_file_name = os.path.split(data_file)
-        data_base = os.path.splitext(data_file_name)[0]
-
-        shutil.copy(
-            os.path.join(data_path, f'{data_base}.mat'),
-            os.path.join(ses_out_path, f'{data_base}.mat')
-        )
-        shutil.copy(
-            os.path.join(data_path, f'{data_base}.dat'),
-            os.path.join(ses_out_path, f'{data_base}.dat')
-        )
-
-        base_fname = os.path.join(ses_out_path, f'{data_base}.mat')
 
         cluster_layer_fs = []
         with spm_context() as spm:
@@ -140,6 +159,7 @@ def run(subj_idx, ses_idx, epo_type, epo, json_file):
             cluster_layer_fs=cluster_layer_fs,
             fe_time=woi_time
         )
+    shutil.rmtree(tmp_dir)
 
 if __name__=='__main__':
 
@@ -152,13 +172,12 @@ if __name__=='__main__':
     all_epoch_types=[]
     all_epochs=[]
 
-    for epoch_type in epoch_types:
-        for epoch in epochs:
-            for subject, session in zip(subjects, sessions):
-                all_subjects.append(subject)
-                all_sessions.append(session)
-                all_epoch_types.append(epoch_type)
-                all_epochs.append(epoch)
+    for epoch_type, epoch in zip(epoch_types, epochs):
+        for subject, session in zip(subjects, sessions):
+            all_subjects.append(subject)
+            all_sessions.append(session)
+            all_epoch_types.append(epoch_type)
+            all_epochs.append(epoch)
 
     # parsing command line arguments
     try:
