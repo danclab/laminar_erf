@@ -73,6 +73,8 @@ def run(subject_id, session_id, sim_vertex, snr, json_file):
         shutil.copy(os.path.join(surf_dir,'multilayer.11.ds.link_vector.fixed.gii'),
                     os.path.join(tmp_dir,'multilayer.11.ds.link_vector.fixed.gii'))
         multilayer_mesh_fname = os.path.join(tmp_dir, 'multilayer.11.ds.link_vector.fixed.gii')
+        shutil.copy(os.path.join(surf_dir, 'FWHM5.00_multilayer.11.ds.link_vector.fixed.mat'),
+                    os.path.join(tmp_dir, 'FWHM5.00_multilayer.11.ds.link_vector.fixed.mat'))
 
         layers = np.linspace(1, 0, n_layers)
         layer_fnames = []
