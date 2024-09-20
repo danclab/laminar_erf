@@ -14,7 +14,7 @@ import json
 import os
 import os.path as op
 
-from utilities.utils import gaussian, rigid_body_transform, get_fiducial_coords
+from utilities.utils import gaussian, get_fiducial_coords
 
 
 def run(subject_id, session_id, sim_vertex, snr, json_file):
@@ -112,7 +112,6 @@ def run(subject_id, session_id, sim_vertex, snr, json_file):
 
 
         dipole_moment = 8
-        coreg_err_mag = 0.0
 
         # simulation signal
         time = np.linspace(-0.2, 0.2, num=121)
@@ -166,10 +165,6 @@ def run(subject_id, session_id, sim_vertex, snr, json_file):
 
                 sim_vx_res[l] = layerF
         sim_vx_res["woi"] = woi
-        sim_vx_res["rpy"] = rpy
-        sim_vx_res["nas"] = mod_nas
-        sim_vx_res["lpa"] = mod_lpa
-        sim_vx_res["rpa"] = mod_rpa
         sim_vx_res["sim_vertex"] = sim_vertex
         sim_vx_res["time"] = time
         sim_vx_res["snr"] = snr
