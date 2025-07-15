@@ -65,7 +65,8 @@ def run(index, json_file):
             print("AMOUNT OF EPOCHS:", len(epochs))
             beh = pd.read_csv(beh_path)
 
-            epochs_2_drop = np.where((beh.response == 0) | (beh.rt < .1))[0]
+            #epochs_2_drop = np.where((beh.response == 0) | (beh.rt < .1))[0]
+            epochs_2_drop = np.where((beh.response == 0))[0]
 
             epochs = epochs.drop(epochs_2_drop, reason="bad behaviour")
             beh = beh.drop(beh.index[epochs_2_drop])

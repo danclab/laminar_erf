@@ -2,7 +2,7 @@ import sys
 import json
 import os.path as op
 from utilities import files
-from lameg.util import fif_spm_conversion
+from lameg.util import ctf_fif_spm_conversion
 from os import sep
 
 def run(index, json_file):
@@ -55,10 +55,10 @@ def run(index, json_file):
             for fif, res4 in fif_res4_paths:
                 print(fif, res4)
 
-                fif_spm_conversion(
+                ctf_fif_spm_conversion(
                     fif, res4, spm_path,
-                    prefix="spm_converted_",
-                    epoched=True
+                    True,
+                    prefix="spm_converted_"
                 )
 
 

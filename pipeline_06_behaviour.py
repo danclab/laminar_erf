@@ -19,7 +19,7 @@ def run(index, json_file):
 
     der_path = op.join(path, "derivatives")
     files.make_folder(der_path)
-    proc_path = op.join(der_path, "processed")
+    proc_path = op.join(der_path, "processed_sss2")
     files.make_folder(proc_path)
 
     subjects = files.get_folders(sub_path, 'sub-', '')[2]

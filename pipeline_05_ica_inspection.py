@@ -2,6 +2,7 @@ import sys
 import json
 import mne
 import os
+import numpy as np
 import os.path as op
 import subprocess as sp
 from utilities import files
@@ -102,8 +103,16 @@ raw.crop(
     tmin=raw.times[events[0,0]],
     tmax=raw.times[events[-1,0]]
 )
-raw.filter(1,20, verbose=False)
+muscle_idx_auto, scores = ica.find_bads_muscle(raw)
+print(scores)
+ica.plot_scores(scores)
+print(
+    f"Automatically found muscle artifact ICA components: {muscle_idx_auto}"
+)
+
+raw.filter(1,40, verbose=False)
 raw.close()
+
 
 sp.Popen(
     ["mousepad", str(ica_json_file)],
@@ -114,9 +123,12 @@ print('')
 
 title_ = "sub:{}, session:{}, file: {}".format(subject_id, session_id, ica_path.split(os.sep)[-1])
 
-ica.plot_components(inst=raw, show=False, title=title_)
+picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False, ecg=False, ref_meg=False)
+raw.pick(picks)
 
-ica.plot_sources(inst=raw, show=False, title=title_)
+ica.plot_components(inst=raw, picks=np.arange(25), show=False, title=title_)
+
+ica.plot_sources(inst=raw, picks=np.arange(25), show=False, title=title_)
 
 plt.show()
 

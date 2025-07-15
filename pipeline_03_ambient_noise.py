@@ -1,149 +1,132 @@
 import json
 import sys
 
-from meegkit.dss import dss_line
-from scipy.signal import welch
-
 from utilities import files
 import os.path as op
 import mne
 import numpy as np
 import matplotlib.pylab as plt
 
+from mne.time_frequency import psd_array_multitaper
+from meegkit.dss import dss_line
+import copy
 
-def dss_line_iter(data, fline, sfreq, win_sz=10, spot_sz=2.5,
-                  nfft=512, show=False, prefix="dss_iter", n_iter_max=100):
-    """Remove power line artifact iteratively.
 
-    This method applies dss_line() until the artifact has been smoothed out
-    from the spectrum.
+def nan_basic_interp(array):
+    nans, ix = np.isnan(array), lambda x: x.nonzero()[0]
+    array[nans] = np.interp(ix(nans), ix(~nans), array[~nans])
+    return array
 
-    Parameters
-    ----------
-    data : data, shape=(n_samples, n_chans, n_trials)
-        Input data.
-    fline : float
-        Line frequency.
-    sfreq : float
-        Sampling frequency.
-    win_sz : float
-        Half of the width of the window around the target frequency used to fit
-        the polynomial (default=10).
-    spot_sz : float
-        Half of the width of the window around the target frequency used to
-        remove the peak and interpolate (default=2.5).
-    nfft : int
-        FFT size for the internal PSD calculation (default=512).
-    show: bool
-        Produce a visual output of each iteration (default=False).
-    prefix : str
-        Path and first part of the visualisation output file
-        "{prefix}_{iteration number}.png" (default="dss_iter").
-    n_iter_max : int
-        Maximum number of iterations (default=100).
 
-    Returns
-    -------
-    data : array, shape=(n_samples, n_chans, n_trials)
-        Denoised data.
-    iterations : int
-        Number of iterations.
+def zapline_until_gone(data, target_freq, sfreq, win_sz=10, spot_sz=2.5, viz=False, prefix="zapline_iter",
+                       max_iter=100):
+    """
+    Returns: clean data, number of iterations
+
+    Function iteratively applies the Zapline algorithm.
+
+    data: assumed that the function is a part of the MNE-Python pipeline,
+    the input should be an output of {MNE object}.get_data() function. The shape
+    should be Trials x Sensors x Time for epochs.
+    target_freq: frequency + harmonics that comb-like approach will be applied
+    with Zapline
+    sfreq: sampling frequency, the output of {MNE object}.info["sfreq"]
+    win_sz: 2x win_sz = window around the target frequency
+    spot_sz: 2x spot_sz = width of the frequency peak to remove
+    viz: produce a visual output of each iteration,
+    prefix: provide a path and first part of the file
+    "{prefix}_{iteration number}.png"
     """
 
-    def nan_basic_interp(array):
-        """Nan interpolation."""
-        nans, ix = np.isnan(array), lambda x: x.nonzero()[0]
-        array[nans] = np.interp(ix(nans), ix(~nans), array[~nans])
-        return array
-
-    freq_rn = [fline - win_sz, fline + win_sz]
-    freq_sp = [fline - spot_sz, fline + spot_sz]
-    freq, psd = welch(data, fs=sfreq, nfft=nfft, axis=0)
-
-    freq_rn_ix = np.logical_and(freq >= freq_rn[0], freq <= freq_rn[1])
-    freq_used = freq[freq_rn_ix]
-    freq_sp_ix = np.logical_and(freq_used >= freq_sp[0],
-                                freq_used <= freq_sp[1])
-
-    if psd.ndim == 3:
-        mean_psd = np.mean(psd, axis=(1, 2))[freq_rn_ix]
-    elif psd.ndim == 2:
-        mean_psd = np.mean(psd, axis=(1))[freq_rn_ix]
-
-    mean_psd_wospot = mean_psd.copy()
-    mean_psd_wospot[freq_sp_ix] = np.nan
-    mean_psd_tf = nan_basic_interp(mean_psd_wospot)
-    pf = np.polyfit(freq_used, mean_psd_tf, 3)
-    p = np.poly1d(pf)
-    clean_fit_line = p(freq_used)
-
-    aggr_resid = []
     iterations = 0
-    while iterations < n_iter_max:
-        data, _ = dss_line(data, fline, sfreq, nfft=nfft, nremove=1)
-        freq, psd = welch(data, fs=sfreq, nfft=nfft, axis=0)
-        if psd.ndim == 3:
-            mean_psd = np.mean(psd, axis=(1, 2))[freq_rn_ix]
-        elif psd.ndim == 2:
-            mean_psd = np.mean(psd, axis=(1))[freq_rn_ix]
+    aggr_resid = []
 
-        if iterations % 10 == 0:
-            mean_psd_wospot = mean_psd.copy()
-            mean_psd_wospot[freq_sp_ix] = np.nan
-            mean_psd_tf = nan_basic_interp(mean_psd_wospot)
-            pf = np.polyfit(freq_used, mean_psd_tf, 3)
-            p = np.poly1d(pf)
-            clean_fit_line = p(freq_used)
+    freq_rn = [target_freq - win_sz, target_freq + win_sz]
+    freq_sp = [target_freq - spot_sz, target_freq + spot_sz]
 
+    norm_vals = []
+    resid_lims = []
+    real_target=None
+
+    while True:
+        if iterations > 0:
+            if iterations >= max_iter:
+                break
+            if real_target is None:
+                real_target=freq[freq_rn_ix[0]:freq_rn_ix[1]][np.argmax(mean_psd)]
+                print(f'Real target={real_target}')
+            data, art = dss_line(data.transpose(), real_target, sfreq, nremove=1)
+            del art
+            data = data.transpose()
+        psd, freq = psd_array_multitaper(data, sfreq, verbose=False, n_jobs=30)
+
+        freq_rn_ix = [
+            np.where(freq >= freq_rn[0])[0][0],
+            np.where(freq <= freq_rn[1])[0][-1]
+        ]
+        freq_used = freq[freq_rn_ix[0]:freq_rn_ix[1]]
+        freq_sp_ix = [
+            np.where(freq_used >= freq_sp[0])[0][0],
+            np.where(freq_used <= freq_sp[1])[0][-1]
+        ]
+
+        norm_psd = psd[:, freq_rn_ix[0]:freq_rn_ix[1]]
+        for ch_idx in range(norm_psd.shape[0]):
+            if iterations == 0:
+                norm_val = np.max(norm_psd[ch_idx, :])
+                norm_vals.append(norm_val)
+            else:
+                norm_val = norm_vals[ch_idx]
+            norm_psd[ch_idx, :] = norm_psd[ch_idx, :] / norm_val
+        mean_psd = np.mean(norm_psd, axis=0)
+
+        mean_psd_wospot = copy.copy(mean_psd)
+        mean_psd_wospot[freq_sp_ix[0]: freq_sp_ix[1]] = np.nan
+        mean_psd_tf = nan_basic_interp(mean_psd_wospot)
+        pf = np.polyfit(freq_used, mean_psd_tf, 3)
+        p = np.poly1d(pf)
+        clean_fit_line = p(freq_used)
         residuals = mean_psd - clean_fit_line
-        mean_score = np.mean(residuals[freq_sp_ix])
-        aggr_resid.append(mean_score)
+        aggr_resid.append(np.mean(residuals))
+        tf_ix = np.where(freq_used <= target_freq)[0][-1]
+        print("Iteration:", iterations, "Power above the fit:", residuals[tf_ix])
 
-        print("Iteration {} score: {}".format(iterations, mean_score))
+        if viz:
+            f, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(12, 6), facecolor="gray", gridspec_kw={"wspace": 0.2})
+            for sensor in range(psd.shape[0]):
+                ax1.plot(freq_used, norm_psd[sensor, :])
+            ax1.set_title("Normalized mean PSD \nacross trials")
 
-        if mean_score <= 0:
+            ax2.plot(freq_used, mean_psd_tf, c="gray")
+            ax2.plot(freq_used, mean_psd, c="blue")
+            ax2.plot(freq_used, clean_fit_line, c="red")
+            ax2.set_title("Mean PSD across \ntrials and sensors")
+
+            ax3.set_title("Residuals")
+            tf_ix = np.where(freq_used <= target_freq)[0][-1]
+            ax3.plot(residuals, freq_used)
+            scat_color = "green"
+            if residuals[tf_ix] <= 0:
+                scat_color = "red"
+            ax3.scatter(residuals[tf_ix], freq_used[tf_ix], c=scat_color)
+            if iterations == 0:
+                resid_lims = ax3.get_xlim()
+            else:
+                ax3.set_xlim(resid_lims)
+
+            ax4.set_title("Iterations")
+
+            ax4.scatter(np.arange(iterations + 1), aggr_resid)
+            plt.savefig("{}_{}.png".format(prefix, str(iterations).zfill(3)))
+            plt.close("all")
+
+        if iterations > 0 and residuals[tf_ix] <= 0:
             break
 
         iterations += 1
 
-    if show:
-        import matplotlib.pyplot as plt
-        f, ax = plt.subplots(2, 2, figsize=(12, 6), facecolor="white")
+    return [data, iterations]
 
-        if psd.ndim == 3:
-            mean_sens = np.mean(psd, axis=2)
-        elif psd.ndim == 2:
-            mean_sens = psd
-
-        y = mean_sens[freq_rn_ix]
-        ax.flat[0].plot(freq_used, y)
-        ax.flat[0].set_title("Mean PSD across trials")
-
-        ax.flat[1].plot(freq_used, mean_psd_tf, c="gray")
-        ax.flat[1].plot(freq_used, mean_psd, c="blue")
-        ax.flat[1].plot(freq_used, clean_fit_line, c="red")
-        ax.flat[1].set_title("Mean PSD across trials and sensors")
-
-        tf_ix = np.where(freq_used <= fline)[0][-1]
-        ax.flat[2].plot(residuals, freq_used)
-        color = "green"
-        if mean_score <= 0:
-            color = "red"
-        ax.flat[2].scatter(residuals[tf_ix], freq_used[tf_ix], c=color)
-        ax.flat[2].set_title("Residuals")
-
-        ax.flat[3].plot(np.arange(iterations + 1), aggr_resid, marker='o')
-        ax.flat[3].set_title("Iterations")
-
-        f.set_tight_layout(True)
-        plt.savefig(f"{prefix}_{iterations:03}.png")
-        plt.close("all")
-
-    if iterations == n_iter_max:
-        raise RuntimeError('Could not converge. Consider increasing the '
-                           'maximum number of iterations')
-
-    return data, iterations
 
 
 def run(index, json_file):
@@ -209,19 +192,29 @@ def run(index, json_file):
             info = raw.info
             raw = raw.get_data()
 
-            zapped, iterations = dss_line_iter(
-                raw.transpose(),
+            zapped, iterations = zapline_until_gone(
+                raw,
                 50.0,
                 info['sfreq'],
-                win_sz=20,
-                spot_sz=5.5,
-                n_iter_max=500,
-                show=True,
-                prefix="{}/{}-{}-{}-50_1_iter".format(qc_folder, subject_id, session_id, numero)
+                win_sz=5,
+                spot_sz=2,
+                viz=True,
+                prefix="{}/{}-{}-{}-50_1_iter".format(qc_folder, subject_id, session_id, numero),
+                max_iter=10
             )
+            # zapped, iterations = dss_line_iter(
+            #     raw.transpose(),
+            #     50.0,
+            #     info['sfreq'],
+            #     win_sz=20,
+            #     spot_sz=5.5,
+            #     n_iter_max=500,
+            #     show=True,
+            #     prefix="{}/{}-{}-{}-50_1_iter".format(qc_folder, subject_id, session_id, numero)
+            # )
 
             raw = mne.io.RawArray(
-                zapped.transpose(),
+                zapped,
                 info
             )
 

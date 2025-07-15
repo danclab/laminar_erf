@@ -338,11 +338,11 @@ def run(index, json_file):
                     trial_idx = trial_idx + 1
 
             # Downsample data and events together
-            raw, events = raw.copy().resample(
+            raw, events = raw.copy().load_data().resample(
                 sfreq,
                 npad="auto",
                 events=raw_events,
-                n_jobs=4,
+                n_jobs=30,
             )
 
             raw_path = op.join(
@@ -365,7 +365,8 @@ def run(index, json_file):
 
             mne.write_events(
                 eve_path,
-                events
+                events,
+                overwrite=True
             )
 
             print("EVENTS SAVED:", eve_path)

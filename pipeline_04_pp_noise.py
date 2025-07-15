@@ -3,8 +3,9 @@ import json
 import mne
 import os.path as op
 
-from extra.tools import dump_the_dict
 from utilities import files
+from utilities.tools import dump_the_dict
+
 
 def run(index, json_file):
     # opening a json file

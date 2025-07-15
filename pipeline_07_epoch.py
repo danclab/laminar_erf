@@ -15,7 +15,8 @@ def run(index, json_file):
         parameters = json.load(pipeline_file)
 
     path = parameters["dataset_path"]
-    hi_pass = parameters["hi_pass_filter"]
+    hi_pass = parameters["high_pass_filter"]
+    low_pass = parameters["low_pass_filter"]
 
     der_path = op.join(path, "derivatives")
     files.make_folder(der_path)
@@ -105,8 +106,8 @@ def run(index, json_file):
             )
 
             raw.filter(
-                l_freq=None,
-                h_freq=hi_pass
+                l_freq=hi_pass,
+                h_freq=low_pass
             )
 
             epochs_dict = {
