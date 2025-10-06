@@ -30,8 +30,6 @@ def run(index, json_file):
     for session in sessions:
         session_id = session.split("/")[-1]
 
-        meg_path = op.join(session, "meg")
-
         sess_path = op.join(sub_path, session_id)
         files.make_folder(sess_path)
 
@@ -78,9 +76,8 @@ def run(index, json_file):
                 t_diff = np.diff(raw_events[prev_idx + 1:iti_evt + 1, 0])
                 all_stds.append(np.std(t_diff))
                 prev_idx = iti_evt
-            np.percentile(all_stds, 1)
             n_evts_to_remove = 0
-            if all_stds[0] < np.percentile(all_stds, .005):
+            if all_stds[0] < 1:
                 n_evts_to_remove = iti_evts[0] + 1
 
             # Remove initial events
@@ -102,7 +99,7 @@ def run(index, json_file):
             print('{} response events'.format(len(resp_evts)))
             print('{} iti events'.format(len(iti_evts)))
 
-            # Add missing fixation events
+            # Add missing dots events
             evt_idx = 1
             while evt_idx < raw_events.shape[0]:
                 # delay and no dots before
@@ -117,9 +114,8 @@ def run(index, json_file):
             while evt_idx < raw_events.shape[0]:
                 # dots and no fixation before
                 if (raw_events[evt_idx, 2] == 30) and not (raw_events[evt_idx - 1, 2] == 20):
-                    dots_time = raw_events[evt_idx, 0]*1/raw.info['sfreq']
-                    fix_time = int((dots_time-1)*raw.info['sfreq'])
-                    raw_events = np.insert(raw_events, evt_idx, [fix_time, 0, 20], axis=0)
+                    trial_time = raw_events[evt_idx - 1, 0]
+                    raw_events = np.insert(raw_events, evt_idx, [trial_time, 0, 20], axis=0)
                 evt_idx += 1
 
             # Add missing trial events
@@ -127,46 +123,9 @@ def run(index, json_file):
             while evt_idx < raw_events.shape[0]:
                 # fixation and no trial before
                 if (raw_events[evt_idx, 2] == 20) and not (raw_events[evt_idx - 1, 2] == 10):
-                    instr_time = raw_events[evt_idx, 0] * 1 / raw.info['sfreq']
-                    trial_time = int((instr_time - .005) * raw.info['sfreq'])
-                    raw_events = np.insert(raw_events, evt_idx, [trial_time, 0, 10], axis=0)
+                    fix_time = raw_events[evt_idx, 0]
+                    raw_events = np.insert(raw_events, evt_idx, [fix_time, 0, 10], axis=0)
                 evt_idx += 1
-
-            # Add missing response events
-            evt_idx = 0
-            while evt_idx < raw_events.shape[0]:
-                # instruction cue and no resp
-                if raw_events[evt_idx, 2] == 50 and not (raw_events[evt_idx + 1, 2] == 60):
-                    instr_time = raw_events[evt_idx, 0]
-                    raw_events = np.insert(raw_events, evt_idx + 1, [instr_time+1, 0, 60], axis=0)
-                evt_idx += 1
-
-            # Add missing ITI events
-            evt_idx = 0
-            while evt_idx < raw_events.shape[0]:
-                # response and no iti
-                if raw_events[evt_idx, 2] == 60 and not raw_events[evt_idx + 1, 2] == 70:
-                    resp_time = raw_events[evt_idx, 0]
-                    raw_events = np.insert(raw_events, evt_idx+1, [resp_time + 1, 0, 70], axis=0)
-                evt_idx += 1
-
-
-
-            trial_evts = np.where(raw_events[:, 2] == 10)[0]
-            fix_evts = np.where(raw_events[:, 2] == 20)[0]
-            dots_evts = np.where(raw_events[:, 2] == 30)[0]
-            del_evts = np.where(raw_events[:, 2] == 40)[0]
-            instr_evts = np.where(raw_events[:, 2] == 50)[0]
-            resp_evts = np.where(raw_events[:, 2] == 60)[0]
-            iti_evts = np.where(raw_events[:, 2] == 70)[0]
-            print('Added missing events')
-            print('{} trial events'.format(len(trial_evts)))
-            print('{} fixation events'.format(len(fix_evts)))
-            print('{} dots events'.format(len(dots_evts)))
-            print('{} delay events'.format(len(del_evts)))
-            print('{} instruction cue events'.format(len(instr_evts)))
-            print('{} response events'.format(len(resp_evts)))
-            print('{} iti events'.format(len(iti_evts)))
 
             # Remove events after last ITI event
             iti_evts = np.where(raw_events[:, 2] == 70)[0]
@@ -233,7 +192,7 @@ def run(index, json_file):
             )
             plt.close("all")
 
-            dt = (raw_events[resp_evts, 0] - raw_events[instr_evts, 0]) * 1 / raw.info['sfreq']
+            dt = (raw_events[resp_evts, 0] - raw_events[resp_evts-1, 0]) * 1 / raw.info['sfreq']
             fig = plt.figure()
             plt.hist(dt, bins=100)
             plt.savefig(
@@ -242,7 +201,7 @@ def run(index, json_file):
             )
             plt.close("all")
 
-            dt = (raw_events[iti_evts, 0] - raw_events[resp_evts, 0]) * 1 / raw.info['sfreq']
+            dt = (raw_events[iti_evts, 0] - raw_events[iti_evts-1, 0]) * 1 / raw.info['sfreq']
             fig = plt.figure()
             plt.hist(dt, bins=100)
             plt.savefig(
@@ -251,7 +210,7 @@ def run(index, json_file):
             )
             plt.close("all")
 
-            n_trials = len(iti_evts)
+            n_trials = len(trial_evts)
 
             diode_times = []
 
@@ -373,17 +332,6 @@ def run(index, json_file):
 
 
 if __name__=='__main__':
-    try:
-        index = int(sys.argv[1])
-    except:
-        print("incorrect arguments")
-        sys.exit()
-
-    try:
-        json_file = sys.argv[2]
-        print("USING:", json_file)
-    except:
-        json_file = "settings.json"
-        print("USING:", json_file)
-
-    run(index, json_file)
+    json_file = "settings.json"
+    for index in range(8):
+        run(index, json_file)
