@@ -103,12 +103,6 @@ raw.crop(
     tmin=raw.times[events[0,0]],
     tmax=raw.times[events[-1,0]]
 )
-muscle_idx_auto, scores = ica.find_bads_muscle(raw)
-print(scores)
-ica.plot_scores(scores)
-print(
-    f"Automatically found muscle artifact ICA components: {muscle_idx_auto}"
-)
 
 raw.filter(1,40, verbose=False)
 raw.close()
