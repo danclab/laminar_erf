@@ -2,12 +2,14 @@ import sys
 import json
 import mne
 import os.path as op
-import shutil
 import pandas as pd
-import numpy as np
-from mne import read_epochs
 
 from utilities import files
+
+epochs_dict = {
+    "visual": [30, -1, 3.5],
+    "motor": [60, -2, 2]
+}
 
 def run(index, json_file):
     # opening a json file
@@ -23,7 +25,7 @@ def run(index, json_file):
     proc_path = op.join(der_path, "processed")
     files.make_folder(proc_path)
 
-    subjects = files.get_folders(proc_path,'sub-','')[2]
+    subjects = files.get_folders(proc_path, 'sub-', '')[2]
     subjects.sort()
     subject = subjects[index]
     subject_id = subject.split("/")[-1]
@@ -66,6 +68,9 @@ def run(index, json_file):
         event_paths.sort()
 
         raw_ica_eve = list(zip(raw_paths, ica_keys, event_paths))
+
+        session_epochs = {}
+        session_behavior = {}
 
         for (raw_path, ica_key, eve_path) in raw_ica_eve:
             # for (raw_path, ica_key, eve_path) in [raw_ica_eve[3]]:
@@ -110,13 +115,8 @@ def run(index, json_file):
                 h_freq=low_pass
             )
 
-            epochs_dict = {
-                "visual": [30, -1, 3.5],
-                "motor": [60, -2, 2]
-            }
-
-            for i in epochs_dict.keys():
-                trig, tmin, tmax = epochs_dict[i]
+            for epo_type in epochs_dict.keys():
+                trig, tmin, tmax = epochs_dict[epo_type]
                 epoch = mne.Epochs(
                     raw,
                     mne.pick_events(events, include=trig),
@@ -124,49 +124,47 @@ def run(index, json_file):
                     tmax=tmax,
                     baseline=None,
                     verbose=True,
-                    detrend=1
+                    detrend=1,
+                    preload=True
                 )
-
-                epoch_path = op.join(
-                    out_sess_path,
-                    "{}-{}-{}-{}-epo.fif".format(subject_id, session_id, numero, i)
-                )
-
-                epoch.save(
-                    epoch_path,
-                    fmt="double",
-                    overwrite=True,
-                    verbose=False,
-                )
-
+                if not epo_type in session_epochs:
+                    session_epochs[epo_type] = []
+                    session_behavior[epo_type] = []
+                session_epochs[epo_type].append(epoch)
                 beh = pd.read_csv(behav_path)
                 n_trials = len(epoch)
-                if len(beh) > n_trials:
-                    beh = beh.drop(axis=0, index=list(range(n_trials, len(beh))))
-                epoch_behav_path = op.join(
-                    out_sess_path,
-                    "{}-{}-{}-{}-beh.csv".format(subject_id, session_id, numero, i)
-                )
-                beh.to_csv(epoch_behav_path)
+                if epo_type=='motor':
+                    beh = beh[beh['response'] != 0]
+                beh = beh.iloc[epoch.selection].reset_index(drop=True)
+                assert len(beh) == n_trials
+                beh['run'] = numero
+                session_behavior[epo_type].append(beh)
 
-                print("SAVED:", epoch_path)
-                print("SAVED:", epoch_behav_path)
+        for epo_type in session_epochs:
+            all_epochs = mne.concatenate_epochs(session_epochs[epo_type], verbose=False)
+            epoch_path = op.join(
+                out_sess_path,
+                "{}-{}-{}-epo.fif".format(subject_id, session_id, epo_type)
+            )
+            all_epochs.save(
+                epoch_path,
+                fmt="double",
+                overwrite=True,
+                verbose=False,
+            )
+
+            all_behav = pd.concat(session_behavior[epo_type])
+            epoch_behav_path = op.join(
+                out_sess_path,
+                "{}-{}-{}-beh.csv".format(subject_id, session_id, epo_type)
+            )
+            all_behav.to_csv(epoch_behav_path)
+
+            print("SAVED:", epoch_path)
+            print("SAVED:", epoch_behav_path)
 
 
-if __name__=='__main__':
-    # parsing command line arguments
-    try:
-        index = int(sys.argv[1])
-    except:
-        print("incorrect arguments")
-        sys.exit()
-
-    try:
-        json_file = sys.argv[2]
-        print("USING:", json_file)
-    except:
-        json_file = "settings.json"
-        print("USING:", json_file)
-
-
-    run(index, json_file)
+if __name__ == '__main__':
+    json_file = "settings.json"
+    for index in range(8):
+        run(index, json_file)
