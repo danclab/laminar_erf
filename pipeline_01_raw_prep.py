@@ -1,18 +1,15 @@
 import csv
-import os
-import sys
 import json
-import nibabel as nib
 from mne import pick_channels_regexp
 import numpy as np
-from mne.coreg import fit_matched_points
+# from mne.coreg import fit_matched_points
 from mne.io.ctf.trans import _make_ctf_coord_trans_set
-from mne.transforms import apply_trans, Transform
+from mne.transforms import apply_trans#, Transform
 import matplotlib.pyplot as plt
 from utilities import files
 import os.path as op
 import mne
-from scipy.optimize import least_squares
+# from scipy.optimize import least_squares
 
 def get_fiducial_coords(subj_id, fname, col_delimiter='\t', subject_column='subj_id',
                         nas_column='nas', lpa_column='lpa', rpa_column='rpa', val_delimiter=','):
@@ -193,6 +190,8 @@ def run(index, json_file):
         dss = [i for i in dss if "ds" in i]
         dss.sort()
 
+        ref_dev_head_t = None
+
         for ds in dss:
             print("INPUT RAW FILE:", ds)
             numero = int(ds.split(".")[0][-2:])
@@ -203,6 +202,9 @@ def run(index, json_file):
                 clean_names=True,
                 verbose=False
             )
+            # set reference destination from the first run
+            if ref_dev_head_t is None:
+                ref_dev_head_t = raw.info['dev_head_t']  # use first run's device->head transform
 
             raw_events = mne.find_events(
                 raw,
@@ -367,6 +369,7 @@ def run(index, json_file):
                 st_duration=10,
                 origin=[0., 0., 0.04],
                 coord_frame='head',
+                destination=ref_dev_head_t,
                 verbose=True
             )
 
@@ -385,18 +388,6 @@ def run(index, json_file):
             raw_sss.close()
 
 if __name__=='__main__':
-    try:
-        index = int(sys.argv[1])
-    except:
-        print("incorrect arguments")
-        sys.exit()
-
-    try:
-        json_file = sys.argv[2]
-        print("USING:", json_file)
-    except:
-        json_file = "settings.json"
-        print("USING:", json_file)
-
-
-    run(index, json_file)
+    json_file = "settings.json"
+    for index in range(8):
+        run(index, json_file)
