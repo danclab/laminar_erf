@@ -208,7 +208,7 @@ n_layers = 11
 
 
 def run(patch_size, spm):
-    base_out_dir = os.path.join('/home/bonaiuto/laminar_erf/output/motor_epoch', '01_mf', f'patch_size_{patch_size:.2f}mm', 'noautoreject')
+    base_out_dir = os.path.join('/home/bonaiuto/laminar_erf/output/motor_epoch', '01_mf', f'patch_size_{patch_size:.2f}mm')
     if not os.path.exists(base_out_dir):
         os.mkdir(base_out_dir)
 
@@ -240,7 +240,6 @@ def run(patch_size, spm):
 
             nas, lpa, rpa = get_fiducial_coords(subject, subjects_file)
 
-            #orig_data_file = f'spm_converted_autoreject-{subject}-{session}-motor-epo-ave.mat'
             orig_data_file = f'spm_converted_{subject}-{session}-motor-epo-ave.mat'
             data_base = os.path.splitext(orig_data_file)[0]
 
@@ -257,7 +256,6 @@ def run(patch_size, spm):
             # Construct base file name for simulations
             base_fname = os.path.join(out_dir, f'{data_base}.mat')
 
-            #epochs = read_epochs(os.path.join(sess_path, f'autoreject-{subject}-{session}-motor-epo.fif'),
             epochs = read_epochs(os.path.join(sess_path, f'{subject}-{session}-motor-epo.fif'),
                                  verbose=False, preload=True)
             rank = mne.compute_rank(epochs, rank='info')
@@ -375,7 +373,6 @@ def run(patch_size, spm):
 if __name__ == '__main__':
     spm = spm_standalone.initialize()
 
-    #for patch_size in [1.0, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10]:
     for patch_size in [5.0]:
         run(patch_size, spm)
 

@@ -48,8 +48,7 @@ def run(index, json_file, spm):
         res4_paths.sort()
 
         for epo_type in epo_types:
-            fif_paths = files.get_files(session, "autoreject", epo_type + "-epo.fif")[2]
-            #fif_paths = files.get_files(session, "sub", epo_type + "-epo.fif")[2]
+            fif_paths = files.get_files(session, "sub", epo_type + "-epo.fif")[2]
 
             fif_paths.sort()
 

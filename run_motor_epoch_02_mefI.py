@@ -208,7 +208,7 @@ n_layers = 11
 
 
 def run(patch_size, spm):
-    base_out_dir = os.path.join('/home/bonaiuto/laminar_erf/output/motor_epoch', '02_mefI', f'patch_size_{patch_size:.2f}mm', 'noautoreject')
+    base_out_dir = os.path.join('/home/bonaiuto/laminar_erf/output/motor_epoch', '02_mefI', f'patch_size_{patch_size:.2f}mm')
     if not os.path.exists(base_out_dir):
         os.mkdir(base_out_dir)
 
@@ -224,158 +224,154 @@ def run(patch_size, spm):
 
         out_fname = os.path.join(base_out_dir, f'results_{subject}_{session}.npz')
 
-        if True:#not os.path.exists(out_fname):
-            mri_fname = os.path.join(preproc_data_dir, subject, 't1w.nii')
+        mri_fname = os.path.join(preproc_data_dir, subject, 't1w.nii')
 
-            subj_surf_dir = os.path.join(preproc_data_dir, subject, 'surf')
-            multilayer_mesh_fname = os.path.join(subj_surf_dir, 'multilayer.11.ds.link_vector.fixed.gii')
-            multilayer_mesh = nib.load(multilayer_mesh_fname)
-            verts_per_surf = int(multilayer_mesh.darrays[0].data.shape[0] / n_layers)
-            ds_pial = nib.load(os.path.join(subj_surf_dir, 'pial.ds.gii'))
-            layer_fnames = get_surface_names(
-                n_layers,
-                subj_surf_dir,
-                'link_vector.fixed'
-            )
+        subj_surf_dir = os.path.join(preproc_data_dir, subject, 'surf')
+        multilayer_mesh_fname = os.path.join(subj_surf_dir, 'multilayer.11.ds.link_vector.fixed.gii')
+        multilayer_mesh = nib.load(multilayer_mesh_fname)
+        verts_per_surf = int(multilayer_mesh.darrays[0].data.shape[0] / n_layers)
+        ds_pial = nib.load(os.path.join(subj_surf_dir, 'pial.ds.gii'))
+        layer_fnames = get_surface_names(
+            n_layers,
+            subj_surf_dir,
+            'link_vector.fixed'
+        )
 
-            nas, lpa, rpa = get_fiducial_coords(subject, subjects_file)
+        nas, lpa, rpa = get_fiducial_coords(subject, subjects_file)
 
-            #orig_data_file = f'spm_converted_autoreject-{subject}-{session}-motor-epo-ave.mat'
-            orig_data_file = f'spm_converted_{subject}-{session}-motor-epo-ave.mat'
-            data_base = os.path.splitext(orig_data_file)[0]
+        orig_data_file = f'spm_converted_{subject}-{session}-motor-epo-ave.mat'
+        data_base = os.path.splitext(orig_data_file)[0]
 
-            # Copy data files to tmp directory
-            shutil.copy(
-                os.path.join(data_dir, f'{data_base}.mat'),
-                os.path.join(out_dir, f'{data_base}.mat')
-            )
-            shutil.copy(
-                os.path.join(data_dir, f'{data_base}.dat'),
-                os.path.join(out_dir, f'{data_base}.dat')
-            )
+        # Copy data files to tmp directory
+        shutil.copy(
+            os.path.join(data_dir, f'{data_base}.mat'),
+            os.path.join(out_dir, f'{data_base}.mat')
+        )
+        shutil.copy(
+            os.path.join(data_dir, f'{data_base}.dat'),
+            os.path.join(out_dir, f'{data_base}.dat')
+        )
 
-            # Construct base file name for simulations
-            base_fname = os.path.join(out_dir, f'{data_base}.mat')
+        # Construct base file name for simulations
+        base_fname = os.path.join(out_dir, f'{data_base}.mat')
 
-            #epochs = read_epochs(os.path.join(sess_path, f'autoreject-{subject}-{session}-motor-epo.fif'),
-            epochs = read_epochs(os.path.join(sess_path, f'{subject}-{session}-motor-epo.fif'),
-                                 verbose=False, preload=True)
-            rank = mne.compute_rank(epochs, rank='info')
+        epochs = read_epochs(os.path.join(sess_path, f'{subject}-{session}-motor-epo.fif'),
+                             verbose=False, preload=True)
+        rank = mne.compute_rank(epochs, rank='info')
 
-            # Coregister data to multilayer mesh
-            coregister(
-                nas,
-                lpa,
-                rpa,
-                mri_fname,
-                multilayer_mesh_fname,
-                base_fname,
-                spm_instance=spm,
-                viz=True
-            )
+        # Coregister data to multilayer mesh
+        coregister(
+            nas,
+            lpa,
+            rpa,
+            mri_fname,
+            multilayer_mesh_fname,
+            base_fname,
+            spm_instance=spm,
+            viz=True
+        )
 
-            # Run localizer on multilayer mesh on -250 to 250ms time window
-            [_, _, MU] = invert_ebb(
-                multilayer_mesh_fname,
-                base_fname,
-                n_layers,
-                woi=[15+2000, 55+2000],
-                patch_size=patch_size,
-                n_temp_modes=4,
-                n_spatial_modes=rank['mag'],
-                return_mu_matrix=True,
-                spm_instance=spm,
-                viz=True
-            )
+        # Run localizer on multilayer mesh on -250 to 250ms time window
+        [_, _, MU] = invert_ebb(
+            multilayer_mesh_fname,
+            base_fname,
+            n_layers,
+            woi=[15+2000, 55+2000],
+            patch_size=patch_size,
+            n_temp_modes=4,
+            n_spatial_modes=rank['mag'],
+            return_mu_matrix=True,
+            spm_instance=spm,
+            viz=True
+        )
 
-            # Get left precentral vertices
-            roi_idx = get_roi_idx(subject, subj_surf_dir, 'lh', ['postcentral'], ds_pial)
+        # Get left precentral vertices
+        roi_idx = get_roi_idx(subject, subj_surf_dir, 'lh', ['postcentral'], ds_pial)
 
-            # Find max variance in -100 to 25ms time window in the middle surface layer
-            all_layer_ts, ts_time, _ = load_source_time_series(
-                base_fname,
-                mu_matrix=MU,
-                vertices=(5 - 1) * verts_per_surf + np.arange(verts_per_surf)
-            )
-            ts_time = ts_time - 2000
+        # Find max variance in -100 to 25ms time window in the middle surface layer
+        all_layer_ts, ts_time, _ = load_source_time_series(
+            base_fname,
+            mu_matrix=MU,
+            vertices=(5 - 1) * verts_per_surf + np.arange(verts_per_surf)
+        )
+        ts_time = ts_time - 2000
 
-            base_t_idx = np.where((ts_time >= -2000) & (ts_time <= -1000))[0]
-            m_base = np.mean(np.abs(all_layer_ts[:, base_t_idx]), axis=-1)
-            t_idx = np.where((ts_time >= 15) & (ts_time <= 55))[0]
-            signal_mag = np.mean(np.abs(all_layer_ts[:, t_idx]), axis=-1) - m_base
+        base_t_idx = np.where((ts_time >= -2000) & (ts_time <= -1000))[0]
+        m_base = np.mean(np.abs(all_layer_ts[:, base_t_idx]), axis=-1)
+        t_idx = np.where((ts_time >= 15) & (ts_time <= 55))[0]
+        signal_mag = np.mean(np.abs(all_layer_ts[:, t_idx]), axis=-1) - m_base
 
-            # Compute anatomical predictors
-            thickness = get_cortical_thickness(multilayer_mesh, n_layers)
-            gainmat_fname = os.path.join(out_dir, f'SPMgainmatrix_{data_base}_1.mat')
-            lf_rmse = get_lead_field_rmse(gainmat_fname, n_layers, verts_per_surf)
-            scalp_mesh_fname = os.path.join(preproc_data_dir, subject, 't1wscalp_2562.surf.gii')
-            orientations = get_orientation(scalp_mesh_fname, multilayer_mesh, ds_pial, verts_per_surf)
-            distances = get_dist_to_scalp(scalp_mesh_fname, ds_pial)
+        # Compute anatomical predictors
+        thickness = get_cortical_thickness(multilayer_mesh, n_layers)
+        gainmat_fname = os.path.join(out_dir, f'SPMgainmatrix_{data_base}_1.mat')
+        lf_rmse = get_lead_field_rmse(gainmat_fname, n_layers, verts_per_surf)
+        scalp_mesh_fname = os.path.join(preproc_data_dir, subject, 't1wscalp_2562.surf.gii')
+        orientations = get_orientation(scalp_mesh_fname, multilayer_mesh, ds_pial, verts_per_surf)
+        distances = get_dist_to_scalp(scalp_mesh_fname, ds_pial)
 
-            # Z-score each anatomical predictor (note: invert distance to scalp)
-            z_thickness = zscore(thickness)
-            z_lf_rmse = zscore(lf_rmse)
-            z_orient = zscore(orientations)
-            z_inv_dist = zscore(-distances)
+        # Z-score each anatomical predictor (note: invert distance to scalp)
+        z_thickness = zscore(thickness)
+        z_lf_rmse = zscore(lf_rmse)
+        z_orient = zscore(orientations)
+        z_inv_dist = zscore(-distances)
 
-            # Composite anatomical score
-            anatomical_score = z_thickness + z_lf_rmse + z_orient + z_inv_dist
+        # Composite anatomical score
+        anatomical_score = z_thickness + z_lf_rmse + z_orient + z_inv_dist
 
-            # Restrict to roi_idx
-            roi_anat_score = anatomical_score[roi_idx]
-            roi_signal = signal_mag[roi_idx]
+        # Restrict to roi_idx
+        roi_anat_score = anatomical_score[roi_idx]
+        roi_signal = signal_mag[roi_idx]
 
-            # Select top 1% signal vertices within ROI
-            signal_threshold = np.percentile(roi_signal, 99)
-            high_signal_mask = roi_signal >= signal_threshold
-            candidate_indices = roi_idx[high_signal_mask]
+        # Select top 1% signal vertices within ROI
+        signal_threshold = np.percentile(roi_signal, 99)
+        high_signal_mask = roi_signal >= signal_threshold
+        candidate_indices = roi_idx[high_signal_mask]
 
-            # Among them, select the vertex with the best anatomical suitability
-            candidate_anat_scores = anatomical_score[candidate_indices]
-            best_idx_local = np.argmax(candidate_anat_scores)
-            prior = candidate_indices[best_idx_local]
+        # Among them, select the vertex with the best anatomical suitability
+        candidate_anat_scores = anatomical_score[candidate_indices]
+        best_idx_local = np.argmax(candidate_anat_scores)
+        prior = candidate_indices[best_idx_local]
 
-            # Get source time series from middle surface layer
-            prior_ts = all_layer_ts[prior, :]
+        # Get source time series from middle surface layer
+        prior_ts = all_layer_ts[prior, :]
 
-            # Run sliding time window model comparison
-            [Fs, wois] = sliding_window_model_comparison(
-                prior,
-                nas,
-                lpa,
-                rpa,
-                mri_fname,
-                layer_fnames,
-                base_fname,
-                spm_instance=spm,
-                viz=False,
-                invert_kwargs={
-                    'patch_size': patch_size,
-                    'n_temp_modes': 4,
-                    'n_spatial_modes': rank['mag'],
-                    'win_size': 25,
-                    'win_overlap': True
-                }
-            )
+        # Run sliding time window model comparison
+        [Fs, wois] = sliding_window_model_comparison(
+            prior,
+            nas,
+            lpa,
+            rpa,
+            mri_fname,
+            layer_fnames,
+            base_fname,
+            spm_instance=spm,
+            viz=False,
+            invert_kwargs={
+                'patch_size': patch_size,
+                'n_temp_modes': 4,
+                'n_spatial_modes': rank['mag'],
+                'win_size': 25,
+                'win_overlap': True
+            }
+        )
 
-            # Save results
-            np.savez(
-                out_fname,
-                subject=subject,
-                session=session,
-                epoch='motor_epoch',
-                prior=prior,
-                prior_ts=prior_ts,
-                ts_time=ts_time,
-                Fs=Fs,
-                wois=wois-2000
-            )
+        # Save results
+        np.savez(
+            out_fname,
+            subject=subject,
+            session=session,
+            epoch='motor_epoch',
+            prior=prior,
+            prior_ts=prior_ts,
+            ts_time=ts_time,
+            Fs=Fs,
+            wois=wois-2000
+        )
 
 
 if __name__ == '__main__':
     spm = spm_standalone.initialize()
 
-    #for patch_size in [1.0, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10]:
     for patch_size in [5.0]:
         run(patch_size, spm)
 
