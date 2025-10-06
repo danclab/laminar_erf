@@ -1,11 +1,17 @@
 import sys
 import json
 import os.path as op
+
+from mne import read_epochs
+
 from utilities import files
 from lameg.util import ctf_fif_spm_conversion
+import spm_standalone
 from os import sep
 
-def run(index, json_file):
+epo_types = ['motor', 'visual']
+
+def run(index, json_file, spm):
     # opening a json file
     with open(json_file) as pipeline_file:
         parameters = json.load(pipeline_file)
@@ -17,7 +23,7 @@ def run(index, json_file):
     proc_path = op.join(der_path, "processed")
     files.make_folder(proc_path)
 
-    subjects = files.get_folders(proc_path,'sub-','')[2]
+    subjects = files.get_folders(proc_path, 'sub-', '')[2]
     subjects.sort()
     subject = subjects[index]
     subject_id = subject.split("/")[-1]
@@ -41,41 +47,41 @@ def run(index, json_file):
         res4_paths = [files.get_files(i, "", ".res4")[2][0] for i in ds_paths]
         res4_paths.sort()
 
-        epo_paths = files.get_files(session, subject_id + "-" + session_id + "-001", "-epo.fif")[2]
-        epo_types = []
-        for epo in epo_paths:
-            epo_types.append(epo.split(sep)[-1].split("-")[5])
-
         for epo_type in epo_types:
-            fif_paths = files.get_files(session, "autoreject-sub", epo_type + "-epo.fif")[2]
+            fif_paths = files.get_files(session, "autoreject", epo_type + "-epo.fif")[2]
+            #fif_paths = files.get_files(session, "sub", epo_type + "-epo.fif")[2]
 
             fif_paths.sort()
 
-            fif_res4_paths = list(zip(fif_paths, res4_paths))
-            for fif, res4 in fif_res4_paths:
-                print(fif, res4)
-
+            for fif in fif_paths:
+                path_split = fif.split(sep)
+                filename_core = path_split[-1].split(".")[0]
                 ctf_fif_spm_conversion(
-                    fif, res4, spm_path,
+                    fif,
+                    res4_paths[0],
+                    spm_path,
                     True,
-                    prefix="spm_converted_"
+                    prefix='spm_converted_',
+                    spm_instance=spm
+                )
+
+                average_file = op.join(session, filename_core + "-ave.fif")
+                epochs = read_epochs(fif, verbose=False)
+                epochs = epochs.average()
+                epochs.save(average_file, overwrite=True)
+                ctf_fif_spm_conversion(
+                    average_file,
+                    res4_paths[0],
+                    spm_path,
+                    False,
+                    prefix='spm_converted_',
+                    spm_instance=spm
                 )
 
 
-
-if __name__=='__main__':
-    # parsing command line arguments
-    try:
-        index = int(sys.argv[1])
-    except:
-        print("incorrect arguments")
-        sys.exit()
-
-    try:
-        json_file = sys.argv[2]
-        print("USING:", json_file)
-    except:
-        json_file = "settings.json"
-        print("USING:", json_file)
-
-    run(index, json_file)
+if __name__ == '__main__':
+    spm = spm_standalone.initialize()
+    json_file = "settings.json"
+    for index in range(8):
+        run(index, json_file, spm)
+    spm.terminate()
