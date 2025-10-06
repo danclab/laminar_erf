@@ -12,6 +12,8 @@ import numpy as np
 
 set_log_level(verbose=False)
 
+epo_types = ['visual', 'motor']
+
 def run(index, json_file):
     # opening a json file
     with open(json_file) as pipeline_file:
@@ -46,29 +48,24 @@ def run(index, json_file):
         qc_folder = op.join(sess_path, "QC")
         files.make_folder(qc_folder)
 
-        epo_paths = files.get_files(sess_path, "sub", "-epo.fif")[2]
-        epo_paths.sort()
-        beh_paths = files.get_files(sess_path, "sub", "-beh.csv")[2]
-        beh_paths.sort()
-
         cmap = colors.ListedColormap(["#FFFFFF", "#CFEEFA", "#FFDE00", "#FF9900", "#FF0000", "#000000"])
         boundaries = [-0.9, -0.1, 1.1, 10, 100, 1000, 10000]
         norm = colors.BoundaryNorm(boundaries, cmap.N, clip=True)
 
-        # for epo in epo_paths:
-        for epo in epo_paths:
-            print("INPUT FILE:", epo)
-            numero = epo.split(sep)[-1].split("-")[4]
-            epochs = read_epochs(epo, verbose=False)
-            epo_type = epo.split(sep)[-1].split("-")[5]
+        for epo_type in epo_types:
+            epo_path = op.join(sess_path, f"{subject_id}-{session_id}-{epo_type}-epo.fif")
+            print("INPUT FILE:", epo_path)
+            epochs = read_epochs(epo_path, verbose=False)
 
-            beh_path = [i for i in beh_paths if numero + '-' + epo_type + '-beh' in i][0]
+            beh_path = op.join(sess_path, f"{subject_id}-{session_id}-{epo_type}-beh.csv")
             print("INPUT BEHAV FILE:", beh_path)
 
             # Drop no responses
             beh = pd.read_csv(beh_path)
-            rej_idx = np.where((beh.response == 0) | (beh.rt < .1))[0]
-            epochs = epochs.drop(rej_idx)
+            rej_idx = (beh.response == 0 )
+            if epo_type=='motor':
+                rej_idx = rej_idx | (beh.correct == 0) | (beh.trial_congruence == 'incongruent')
+            epochs = epochs.drop(np.where(rej_idx)[0])
 
             ch_thr = compute_thresholds(
                 epochs,
@@ -78,18 +75,14 @@ def run(index, json_file):
                 n_jobs=-1,
                 augment=False
             )
-            # save the thresholds in JSON
-            ch_list = list(ch_thr.keys())
-            ch_list.sort()
-            results = np.zeros((len(ch_list), len(epochs)))
-            results = results - 1
-            for ix, ch in enumerate(ch_list):
-                thr = ch_thr[ch]
-                ch_tr = epochs.copy().pick_channels([ch]).get_data()
-                res = [np.where(ch_tr[i][0] > thr)[0].shape[0] for i in range(len(epochs))]
-                res = np.array(res)
-                results[ix, :] = res
-            name = "{}-{}-{}-{}".format(subject_id, session_id, numero, epo_type)
+            # save the thresholds
+            ch_list = sorted(ch_thr.keys())
+            data = epochs.get_data(picks=ch_list)
+            thr = np.array([ch_thr[ch] for ch in ch_list], dtype=data.dtype)[None, :, None]
+            counts = (data > thr).sum(axis=-1)  # (n_epochs, n_channels)
+            results = counts.T.astype(np.int64)
+
+            name = "{}-{}-{}".format(subject_id, session_id, epo_type)
             npy_path = op.join(qc_folder, name + ".npy")
             np.save(npy_path, results)
             img_path = op.join(qc_folder, name + "-epo-QC.png")
@@ -127,18 +120,6 @@ def run(index, json_file):
 
 
 if __name__=='__main__':
-    # parsing command line arguments
-    try:
-        index = int(sys.argv[1])
-    except:
-        print("incorrect arguments")
-        sys.exit()
-
-    try:
-        json_file = sys.argv[2]
-        print("USING:", json_file)
-    except:
-        json_file = "settings.json"
-        print("USING:", json_file)
-
-    run(index, json_file)
+    json_file = "settings.json"
+    for index in range(8):
+        run(index, json_file)
