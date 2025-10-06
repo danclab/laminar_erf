@@ -155,8 +155,6 @@ def run(index, json_file):
     for session in sessions:
         session_id = session.split("/")[-1]
 
-        meg_path = op.join(session, "meg")
-
         sess_path = op.join(sub_path, session_id)
         files.make_folder(sess_path)
 
@@ -202,16 +200,6 @@ def run(index, json_file):
                 prefix="{}/{}-{}-{}-50_1_iter".format(qc_folder, subject_id, session_id, numero),
                 max_iter=10
             )
-            # zapped, iterations = dss_line_iter(
-            #     raw.transpose(),
-            #     50.0,
-            #     info['sfreq'],
-            #     win_sz=20,
-            #     spot_sz=5.5,
-            #     n_iter_max=500,
-            #     show=True,
-            #     prefix="{}/{}-{}-{}-50_1_iter".format(qc_folder, subject_id, session_id, numero)
-            # )
 
             raw = mne.io.RawArray(
                 zapped,
@@ -241,18 +229,6 @@ def run(index, json_file):
 
 
 if __name__=='__main__':
-    try:
-        index = int(sys.argv[1])
-    except:
-        print("incorrect arguments")
-        sys.exit()
-
-    try:
-        json_file = sys.argv[2]
-        print("USING:", json_file)
-    except:
-        json_file = "settings.json"
-        print("USING:", json_file)
-
-
-    run(index, json_file)
+    json_file = "settings.json"
+    for index in range(8):
+        run(index, json_file)

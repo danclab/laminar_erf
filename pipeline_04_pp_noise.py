@@ -33,8 +33,6 @@ def run(index, json_file):
     for session in sessions:
         session_id = session.split("/")[-1]
 
-        meg_path = op.join(session, "meg")
-
         sess_path = op.join(sub_path, session_id)
         files.make_folder(sess_path)
 
@@ -100,17 +98,6 @@ def run(index, json_file):
 
 
 if __name__=='__main__':
-    try:
-        index = int(sys.argv[1])
-    except:
-        print("incorrect arguments")
-        sys.exit()
-
-    try:
-        json_file = sys.argv[2]
-        print("USING:", json_file)
-    except:
-        json_file = "settings.json"
-        print("USING:", json_file)
-
-    run(index, json_file)
+    json_file = "settings.json"
+    for index in range(8):
+        run(index, json_file)

@@ -7,7 +7,7 @@ import os.path as op
 
 import scipy.io
 
-from utilities import visang, files
+from utilities import files
 
 def run(index, json_file):
     # opening a json file
@@ -19,7 +19,7 @@ def run(index, json_file):
 
     der_path = op.join(path, "derivatives")
     files.make_folder(der_path)
-    proc_path = op.join(der_path, "processed_sss2")
+    proc_path = op.join(der_path, "processed")
     files.make_folder(proc_path)
 
     subjects = files.get_folders(sub_path, 'sub-', '')[2]
@@ -52,7 +52,6 @@ def run(index, json_file):
         qc_folder = op.join(sess_path, "QC")
         files.make_folder(qc_folder)
 
-        # for beh_file in [beh_files[4]]:
         for beh_file, stim_file in zip(beh_files, stim_files):
             numero = beh_file.split(os.sep)[-1].split("_")[-2].split("-")[1].zfill(3)
 
@@ -117,18 +116,6 @@ def run(index, json_file):
 
 
 if __name__=='__main__':
-    # parsing command line arguments
-    try:
-        index = int(sys.argv[1])
-    except:
-        print("incorrect arguments")
-        sys.exit()
-
-    try:
-        json_file = sys.argv[2]
-        print("USING:", json_file)
-    except:
-        json_file = "settings.json"
-        print("USING:", json_file)
-
-    run(index, json_file)
+    json_file = "settings.json"
+    for index in range(8):
+        run(index, json_file)
